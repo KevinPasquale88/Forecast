@@ -1,4 +1,5 @@
 from evaluation import evaluate_results
+from generatereport import generate_report
 from preprocessing import preprocessing_data
 from embedding import embeddings
 from classification import training_classifier
@@ -22,6 +23,9 @@ def main():
     
     #evaluation phase 4: analyze results, plot graphs, save summary table
     evaluate_results()
+    
+    #report generation phase 5: create markdown report with results and graphs
+    generate_report()
 
 if __name__ == "__main__":
     main()
