@@ -66,12 +66,11 @@ def delete_files_graphics():
 
 def plot_data_heatmap(X):
     num_cols = ["age", "trestbps", "chol", "thalach", "oldpeak", "ca"]
-    plt.figure(figsize=(8,6))
-    sns.heatmap(X[num_cols].corr(), annot=True, cmap="coolwarm", center=0)
-    plt.title("Correlazione tra variabili numeriche")
-    plt.show()
-    plt.savefig("datas/graphics/heatmap_correlation.png", dpi=300)
-    plt.close()
+    fig, ax = plt.subplots(figsize=(8,6))
+    sns.heatmap(X[num_cols].corr(), annot=True, cmap="coolwarm", center=0, ax=ax)
+    ax.set_title("Correlazione tra variabili numeriche")
+    fig.savefig("datas/graphics/heatmap_correlation.png", dpi=300, bbox_inches="tight")
+    plt.close(fig)
 
 def plot_pca(X, y, title):
     pca = PCA(n_components=2)
@@ -104,16 +103,10 @@ def plot_boxplots(results_dict):
     
 def plot_roc(y_true, y_score, title):
     roc_display = RocCurveDisplay.from_predictions(y_true, y_score)
-    plt.figure(figsize=(6,6))
-    plt.plot(roc_display.fpr, roc_display.tpr, label=f"ROC curve (AUC = {roc_display.roc_auc:.4f})", color="blue")
-    plt.plot([0, 1], [0, 1], label="Random Classifier", color="red")
-    plt.xlabel("False Positive Rate")
-    plt.ylabel("True Positive Rate")
-    plt.title(title)
-    plt.legend()
-    plt.show()
-    plt.savefig(f"datas/graphics/ROC_{title}.png", dpi=300)
-    plt.close()
+    fig = roc_display.figure_
+    fig.set_size_inches(6,6)
+    fig.savefig(f"datas/graphics/ROC_{title}.png", dpi=300, bbox_inches="tight")
+    plt.close(fig)
 
 def plot_confusion(y_true, y_pred, name):
     cm = confusion_matrix(y_true, y_pred)

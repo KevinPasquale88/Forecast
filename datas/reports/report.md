@@ -33,7 +33,7 @@ Verificare la robustezza e l’affidabilità della pipeline basata su embedding 
 
 ### e5-base
 
-![ROC e5-base](datas/graphics/ROC_e5-base.png)
+![ROC e5-base](../graphics/ROC_e5-base.png)
 
 ### gte-base
 

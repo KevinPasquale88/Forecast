@@ -49,7 +49,7 @@ def generate_markdown(summary):
 
     md.append("## 📉 ROC Curve dei modelli\n")
     for model in summary["model"]:
-        roc_path = f"datas/graphics/ROC_{model}.png"
+        roc_path = f"../graphics/ROC_{model}.png"
         if os.path.exists(roc_path):
             md.append(f"### {model}\n")
             md.append(f"![ROC {model}]({roc_path})\n")
@@ -58,14 +58,14 @@ def generate_markdown(summary):
 
     md.append("## 🧩 Confusion Matrix\n")
     for model in summary["model"]:
-        cm_path = f"datas/graphics/CM_{model}.png"
+        cm_path = f"../graphics/CM_{model}.png"
         if os.path.exists(cm_path):
             md.append(f"### {model}\n")
             md.append(f"![CM {model}]({cm_path})\n")
 
     md.append("\n---\n")
 
-    boxplot_path = "data/results/BOXPLOT_metrics.png"
+    boxplot_path = "../results/BOXPLOT_metrics.png"
     if os.path.exists(boxplot_path):
         md.append("## 📦 Boxplot delle Metriche (Bootstrap)\n")
         md.append(f"![Boxplot]({boxplot_path})\n")
