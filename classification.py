@@ -5,7 +5,7 @@ from sklearn.metrics import accuracy_score, f1_score, precision_recall_curve, ro
 from sklearn.model_selection import StratifiedKFold
 import seaborn as sns
 import matplotlib.pyplot as plt
-from function import models_ollama, results
+from function import models_ollama, plot_metric_comparison, results
 
 def training_classifier():
     for model in models_ollama:
@@ -64,7 +64,11 @@ def training_classifier():
     df = pd.DataFrame(results).T   # trasponi per avere modelli come righe
     df.to_csv("datas/results/model_performance.csv")
     print("Salvato in model_performance.csv")
-    df_melt = df.reset_index().melt(id_vars="index", value_vars=["acc","f1","auc","tau"], var_name="variable", value_name="value")
-    sns.boxplot(data=df_melt, x="variable", y="value", hue="index")
-    plt.title("Confronto metriche tra encoder")
-    plt.show()
+    df_summary = pd.DataFrame({
+        "model": list(results.keys()),
+        "acc": [v["acc"] for v in results.values()],
+        "f1": [v["f1"] for v in results.values()],
+        "auc": [v["auc"] for v in results.values()],
+        "tau": [v["tau"] for v in results.values()]
+    })
+    plot_metric_comparison(df_summary)

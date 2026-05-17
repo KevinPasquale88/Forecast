@@ -99,24 +99,8 @@ echo "====================================================="
 echo "       🚀 AVVIO PASSI DELLA PIPELINE PYTHON"
 echo "====================================================="
 
-echo ">>> STEP 1 — Generazione testi descrittivi"
-python3 src/generate_texts.py || exit 1
-
-echo ""
-echo ">>> STEP 2 — Generazione embedding (Ollama)"
-python3 src/generate_embeddings.py || exit 1
-
-echo ""
-echo ">>> STEP 3 — Addestramento modelli"
-python3 src/train_models.py || exit 1
-
-echo ""
-echo ">>> STEP 4 — Valutazione statistica"
-python3 src/evaluation.py || exit 1
-
-echo ""
-echo ">>> STEP 5 — Generazione report (Markdown + PDF)"
-python3 src/generate_report.py --pdf || exit 1
+echo ">>> START MAIN"
+python3 main.py || exit 1
 
 # ======================================================
 # 6) FINE
