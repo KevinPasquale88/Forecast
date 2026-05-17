@@ -8,7 +8,7 @@ def evaluate_results():
     summary_rows = []
     for model in models_ollama:
         print(f"\n=== Analyzing: {model['model_name']} ===")
-        # carica i dati
+        # load data
         y_true = np.load(f"datas/results/{model['model_name']}_y_true.npy")
         y_score = np.load(f"datas/results/{model['model_name']}_y_score.npy")
         y_pred  = np.load(f"datas/results/{model['model_name']}_y_pred.npy")
@@ -39,12 +39,12 @@ def evaluate_results():
         print(f"F1 Score: {f1_mean:.4f}  CI: {f1_ci}")
         print(f"AUC:      {auc_mean:.4f}  CI: {auc_ci}")
     plot_boxplots(bootstrap_results)
-    # salva tabella finale
+    # save final summary table
     df_summary = pd.DataFrame(summary_rows)
     df_summary.to_csv("datas/results/encoder_comparison_summary.csv", index=False)
-    print("\n=== ANALISI COMPLETATA ===")
-    print("Grafici salvati in /results/")
-    print("Tabella finale: encoder_comparison_summary.csv")
+    print("\n=== ANALYSIS COMPLETED ===")
+    print("Plots saved in /results/")
+    print("Final table: encoder_comparison_summary.csv")
 
 
 def bootstrap_metrics(y_true, y_score,y_pred, n_iter=10000, seed=42):

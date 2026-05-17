@@ -1,68 +1,68 @@
-# Forecast — Documentazione del progetto
+# Forecast — Project Documentation
 
-Questo repository è organizzato in quattro fasi principali: dataset, preprocessing, embedding, addestramento (classificazione) e valutazione. Di seguito trovi una descrizione concisa di ciascuna fase e istruzioni rapide per eseguire il progetto.
+This repository is organized into four main phases: dataset, preprocessing, embedding, training (classification), and evaluation. Below is a concise description of each phase and quick instructions to run the project.
 
 ## Dataset
-- I dati originali si trovano nella cartella `heart+disease/` e sono i file:
+- The original data is stored in the `heart+disease/` folder and includes:
   - `processed.cleveland.data`, `processed.hungarian.data`, `processed.switzerland.data`, `processed.va.data`
-- Il caricamento e l'unione dei file è gestito da `preprocessing.py::load_heart_disease()`.
+- Loading and concatenating these files is handled by `preprocessing.py::load_heart_disease()`.
 
 ## Preprocessing
-- File principale: [preprocessing.py](preprocessing.py)
-- Passaggi eseguiti:
-  - gestione dei valori mancanti (imputazione: mediana per numeriche, moda per categoriche)
-  - scaling delle feature numeriche (`StandardScaler`)
-  - one-hot encoding per le feature categoriche
-  - bilanciamento della classe target tramite `SMOTE`
-- Funzioni utili:
-  - `clean_data(X, y)` — costruisce e adatta la pipeline di preprocessing
-  - `data_processed(...)` — genera il DataFrame trasformato pronto per ulteriori analisi
-  - `record_to_text(row)` — converte una riga in una stringa testuale (usata per generare embeddings)
+- Main file: [preprocessing.py](preprocessing.py)
+- Steps performed:
+  - handle missing values (median imputation for numeric features, most frequent imputation for categorical features)
+  - scale numeric features (`StandardScaler`)
+  - one-hot encode categorical features
+  - balance the target class using `SMOTE`
+- Useful functions:
+  - `clean_data(X, y)` — builds and fits the preprocessing pipeline
+  - `data_processed(...)` — generates the transformed DataFrame ready for analysis
+  - `record_to_text(row)` — converts a row into a text description (used for embedding generation)
 
 ## Embedding
-- File principale: [embedding.py](embedding.py)
-- Descrizione:
-  - Le rappresentazioni vettoriali vengono generate (nel flusso originale) usando il client `ollama` in `main.py`.
-  - La lista dei modelli provvisti è definita in `embedding.py` (variabili `models_ollama`).
-  - Gli embeddings e le etichette vengono salvati in file `.npy` tramite `save_embeddings_to_npy()` e `save_embeddindgs_label_to_npy()`.
+- Main file: [embedding.py](embedding.py)
+- Description:
+  - Vector representations are generated using the `ollama` client in `main.py`.
+  - The available model list is defined in `embedding.py` via `models_ollama`.
+  - Embeddings and labels are saved to `.npy` files using `save_embeddings_to_npy()` and `save_labels_to_npy()`.
 
-## Addestramento / Classificazione
-- File principale: [classification.py](classification.py)
-- Approccio:
-  - Classificatore base: `LogisticRegression` (max_iter=2000)
-  - Validazione: `StratifiedKFold` con 5 fold
-  - Per ogni fold si calcola la soglia ottimale massimizzando l'F1 dalla curva precision-recall
-  - Metriche riportate: Accuracy, Macro-F1, ROC-AUC e soglia media ottimizzata
-  - Stima dell'incertezza tramite bootstrap sulle metriche (vedi `bootstrap_metrics`)
+## Training / Classification
+- Main file: [classification.py](classification.py)
+- Approach:
+  - Base classifier: `LogisticRegression` (`max_iter=2000`)
+  - Validation: `StratifiedKFold` with 5 folds
+  - Each fold selects an optimal threshold by maximizing F1 from the precision-recall curve
+  - Reported metrics: Accuracy, Macro-F1, ROC-AUC, and mean optimized threshold
+  - Uncertainty estimation via bootstrap on metrics (see `bootstrap_metrics`)
 
-## Valutazione e Visualizzazione
-- File principale: [evaluation.py](evaluation.py)
-- Grafici prodotti:
-  - PCA 2D dei vettori pre-elaborati
-  - ROC curve per modello
-  - Confusion matrix
-  - Boxplot delle metriche bootstrap
+## Evaluation and Visualization
+- Main file: [evaluation.py](evaluation.py)
+- Generated plots:
+  - 2D PCA of preprocessed vectors
+  - ROC curves for each model
+  - Confusion matrices
+  - Bootstrap metric boxplots
 
-## Esecuzione
-1. Attiva l'ambiente virtuale:
+## Execution
+1. Activate the virtual environment:
 ```bash
 source env/bin/activate
 ```
-2. Esegui lo script principale:
+2. Run the main script:
 ```bash
 python main.py
 ```
 
-Nota: la generazione di embeddings usa `ollama.Client` in `main.py` — assicurati che il servizio/endpoint richiesto sia disponibile e configurato (se necessario).
+Note: embedding generation uses `ollama.Client` in `main.py` — ensure the required service/endpoint is available and configured.
 
-## Requisiti
-- Controlla [requirements.txt](requirements.txt) per le dipendenze richieste.
+## Requirements
+- Check [requirements.txt](requirements.txt) for required dependencies.
 
-## Struttura dei file
-- `main.py` — orchestratore che esegue tutte le fasi
-- `preprocessing.py` — caricamento e pipeline di preprocessing
-- `embedding.py` — configurazione modelli e salvataggio embeddings
-- `classification.py` — training e validazione del classificatore
-- `evaluation.py` — funzioni di plotting e bootstrap
+## File Structure
+- `main.py` — orchestrates all phases
+- `preprocessing.py` — data loading and preprocessing pipeline
+- `embedding.py` — model configuration and embedding saving
+- `classification.py` — classifier training and validation
+- `evaluation.py` — plotting and bootstrap utilities
 
-Se vuoi, posso aggiungere una sezione con esempi di output o includere i comandi per rigenerare solo gli embeddings senza rieseguire l'intera pipeline.
+If you want, I can also add an example outputs section or commands to regenerate only embeddings without rerunning the full pipeline.

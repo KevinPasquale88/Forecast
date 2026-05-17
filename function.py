@@ -29,46 +29,46 @@ results = {
 }
 
 def delete_files_embeddings():
-    cartella = "datas/embeddings"
-    stringa_da_cercare = "embeddings"
-    for nome_file in os.listdir(cartella):
-        percorso_completo = os.path.join(cartella, nome_file)
-        if os.path.isfile(percorso_completo) and stringa_da_cercare in nome_file:
-            os.remove(percorso_completo)
-            print(f"File eliminato con successo: {nome_file}")
+    folder = "datas/embeddings"
+    pattern = "embeddings"
+    for file_name in os.listdir(folder):
+        full_path = os.path.join(folder, file_name)
+        if os.path.isfile(full_path) and pattern in file_name:
+            os.remove(full_path)
+            print(f"Successfully deleted file: {file_name}")
             
 def delete_files_preprocessing():
-    cartella = "datas/preprocessing"
-    stringa_da_cercare = "preprocessed"
-    for nome_file in os.listdir(cartella):
-        percorso_completo = os.path.join(cartella, nome_file)
-        if os.path.isfile(percorso_completo) and stringa_da_cercare in nome_file:
-            os.remove(percorso_completo)
-            print(f"File eliminato con successo: {nome_file}")
+    folder = "datas/preprocessing"
+    pattern = "preprocessed"
+    for file_name in os.listdir(folder):
+        full_path = os.path.join(folder, file_name)
+        if os.path.isfile(full_path) and pattern in file_name:
+            os.remove(full_path)
+            print(f"Successfully deleted file: {file_name}")
             
 def delete_files_results():
-    cartella = "datas/results"
-    stringa_da_cercare = ["model_performance","_y_true", "_y_score", "_y_pred", "BOXPLOT_metrics", "metric_comparison","encoder_comparison_summary"]
-    for nome_file in os.listdir(cartella):
-        percorso_completo = os.path.join(cartella, nome_file)
-        if os.path.isfile(percorso_completo) and any(s in nome_file for s in stringa_da_cercare):
-            os.remove(percorso_completo)
-            print(f"File eliminato con successo: {nome_file}")
+    folder = "datas/results"
+    pattern_list = ["model_performance","_y_true", "_y_score", "_y_pred", "BOXPLOT_metrics", "metric_comparison","encoder_comparison_summary"]
+    for file_name in os.listdir(folder):
+        full_path = os.path.join(folder, file_name)
+        if os.path.isfile(full_path) and any(s in file_name for s in pattern_list):
+            os.remove(full_path)
+            print(f"Successfully deleted file: {file_name}")
             
 def delete_files_graphics():
-    cartella = "datas/graphics"
-    stringa_da_cercare = ["ROC", "CM", "bootstrap_metrics", "PCA", "metric_comparison", "heatmap"]
-    for nome_file in os.listdir(cartella):
-        percorso_completo = os.path.join(cartella, nome_file)
-        if os.path.isfile(percorso_completo) and any(s in nome_file for s in stringa_da_cercare):
-            os.remove(percorso_completo)
-            print(f"File eliminato con successo: {nome_file}")
+    folder = "datas/graphics"
+    pattern_list = ["ROC", "CM", "bootstrap_metrics", "PCA", "metric_comparison", "heatmap"]
+    for file_name in os.listdir(folder):
+        full_path = os.path.join(folder, file_name)
+        if os.path.isfile(full_path) and any(s in file_name for s in pattern_list):
+            os.remove(full_path)
+            print(f"Successfully deleted file: {file_name}")
 
 def plot_data_heatmap(X):
     num_cols = ["age", "trestbps", "chol", "thalach", "oldpeak", "ca"]
     fig, ax = plt.subplots(figsize=(8,6))
     sns.heatmap(X[num_cols].corr(), annot=True, cmap="coolwarm", center=0, ax=ax)
-    ax.set_title("Correlazione tra variabili numeriche")
+    ax.set_title("Correlation among numerical variables")
     fig.savefig("datas/graphics/heatmap_correlation.png", dpi=300, bbox_inches="tight")
     plt.close(fig)
 
@@ -120,7 +120,7 @@ def plot_metric_comparison(df_summary):
     df_melted = df_summary.melt(id_vars="model", value_vars=["acc", "f1", "auc","tau"], var_name="metric", value_name="value")
     plt.figure(figsize=(10,6))
     sns.barplot(data=df_melted, x="metric", y="value", hue="model")
-    plt.title("Confronto Metriche (Mean) per Modello")
+    plt.title("Metric Comparison (Mean) per Model")
     plt.savefig("datas/results/metric_comparison.png", dpi=300, bbox_inches="tight")
     plt.close()
     

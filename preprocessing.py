@@ -29,7 +29,7 @@ def preprocessing_data():
     clean_pipeline = clean_data(X_train, y_train)
 
     X_train_emb_df = data_processed(X_train, y_train, clean_pipeline)
-    plot_pca(X_train_emb_df.drop("target", axis=1), X_train_emb_df["target"], "Dati Preprocessati + Embeddings")
+    plot_pca(X_train_emb_df.drop("target", axis=1), X_train_emb_df["target"], "Preprocessed Data + Embeddings")
     print(X_train_emb_df.head())
     save_data_processed(X_train_emb_df)
     plot_data_heatmap(X_train_emb_df)
