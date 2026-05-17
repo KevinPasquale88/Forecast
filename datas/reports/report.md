@@ -1,6 +1,6 @@
 # 📊 Encoder Evaluation Report
 
-**Generated:** 2026-05-17 02:49
+**Generated:** 2026-05-17 03:00
 
 ---
 
@@ -31,13 +31,49 @@ Verificare la robustezza e l’affidabilità della pipeline basata su embedding 
 
 ## 📉 ROC Curve dei modelli
 
+### e5-base
+
+![ROC e5-base](../graphics/ROC_e5-base.png)
+
+### gte-base
+
+![ROC gte-base](../graphics/ROC_gte-base.png)
+
+### gte-large
+
+![ROC gte-large](../graphics/ROC_gte-large.png)
+
+### e5-large
+
+![ROC e5-large](../graphics/ROC_e5-large.png)
+
 
 ---
 
 ## 🧩 Confusion Matrix
 
+### e5-base
+
+![CM e5-base](../graphics/CM_e5-base.png)
+
+### gte-base
+
+![CM gte-base](../graphics/CM_gte-base.png)
+
+### gte-large
+
+![CM gte-large](../graphics/CM_gte-large.png)
+
+### e5-large
+
+![CM e5-large](../graphics/CM_e5-large.png)
+
 
 ---
+
+## 📦 Boxplot delle Metriche (Bootstrap)
+
+![Boxplot](../results/BOXPLOT_metrics.png)
 
 
 ---
