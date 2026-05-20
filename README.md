@@ -70,5 +70,3 @@ Note: embedding generation uses `ollama.Client` in `main.py` — ensure the requ
 - `embedding.py` — model configuration and embedding saving
 - `classification.py` — classifier training and validation
 - `evaluation.py` — plotting and bootstrap utilities
-
-If you want, I can also add an example outputs section or commands to regenerate only embeddings without rerunning the full pipeline.
