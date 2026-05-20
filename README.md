@@ -1,5 +1,11 @@
 # Forecast — Project Documentation
 
+## Thesis Title
+Automatic disease prediction from clinical datasets using a local pipeline based on modern encoders and Ollama.
+
+## Project Description
+This thesis aims to build a fully local classification pipeline using the same technology as the advisor's work: a Python + Ollama environment that runs language or embedding models without relying on external APIs. The goal is to predict the presence or absence of a pathology from structured clinical data while ensuring privacy and full reproducibility.
+
 This repository is organized into four main phases: dataset, preprocessing, embedding, training (classification), and evaluation. Below is a concise description of each phase and quick instructions to run the project.
 
 ## Dataset
