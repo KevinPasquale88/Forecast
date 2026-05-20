@@ -10,6 +10,7 @@ from imblearn.over_sampling import SMOTE
 
 from function import plot_data_heatmap, columns, num_cols, cat_cols, plot_pca
 
+#main preprocessing function: load, clean, encode, scale data, save preprocessed data for embedding phase
 def preprocessing_data():
     # fetch dataset from data files
     heart_disease= load_heart_disease()
@@ -35,6 +36,7 @@ def preprocessing_data():
     plot_data_heatmap(X_train_emb_df)
     return X_train, y_train
     
+#load data from files and concatenate into one dataframe
 def load_heart_disease():
     files = [
         "datas/heart+disease/processed.cleveland.data",
@@ -47,6 +49,7 @@ def load_heart_disease():
     df.columns = columns
     return df
 
+#preparation functions: clean data, transform data, save preprocessed data
 def clean_data(X, y):
     numeric_transformer = ImbPipeline(steps=[('imputer', SimpleImputer(strategy='median')),('scaler', StandardScaler())])
 

@@ -28,6 +28,7 @@ results = {
     "gte-base":  {"acc": [], "f1": [], "auc": [], "tau": []}
 }
 
+#delete files functions
 def delete_files_embeddings():
     folder = "datas/embeddings"
     pattern = "embeddings"
@@ -64,6 +65,8 @@ def delete_files_graphics():
             os.remove(full_path)
             print(f"Successfully deleted file: {file_name}")
 
+
+# print all datas in one markdown report
 def plot_data_heatmap(X):
     num_cols = ["age", "trestbps", "chol", "thalach", "oldpeak", "ca"]
     fig, ax = plt.subplots(figsize=(8,6))
