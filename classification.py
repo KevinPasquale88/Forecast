@@ -3,10 +3,10 @@ import pandas as pd
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score, f1_score, precision_recall_curve, roc_auc_score
 from sklearn.model_selection import StratifiedKFold
-from function import models_ollama, plot_metric_comparison, results
+from function import models_all, plot_metric_comparison, results
 
 def training_classifier():
-    for model in models_ollama:
+    for model in models_all:
         print(f"Evaluating model: {model['name']}")
         X = np.load(f"datas/embeddings/{model['filename']}",allow_pickle=True)
         y = np.load(f"datas/embeddings/{model['filename_label']}",allow_pickle=True)

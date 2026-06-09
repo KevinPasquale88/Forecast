@@ -14,12 +14,19 @@ cat_cols = ['sex', 'cp', 'fbs', 'restecg', 'exang', 'slope', 'thal']
 
 
 models_ollama = [
-    {"model_name":"e5-base","name": "yxchia/multilingual-e5-base", "filename": "e5_base_embeddings.npy", "filename_label": "e5_base_embeddings_labels.npy"},
-    {"model_name":"gte-base","name": "granite3-dense", "filename": "gte_base_embeddings.npy", "filename_label": "gte_base_embeddings_labels.npy"},
-    {"model_name":"gte-large","name": "zyw0605688/gte-large-zh", "filename": "gte_large_embeddings.npy", "filename_label": "gte_large_embeddings_labels.npy"},
-    {"model_name":"e5-large","name": "jeffh/intfloat-multilingual-e5-large-instruct:q8_0", "filename": "e5_large_embeddings.npy", "filename_label": "e5_large_embeddings_labels.npy" }
+    {"type": "ollama", "model_name":"e5-base","name": "yxchia/multilingual-e5-base", "filename": "e5_base_embeddings.npy", "filename_label": "e5_base_embeddings_labels.npy"},
+    {"type": "ollama", "model_name":"gte-base","name": "twwch/m3e-base", "filename": "gte_base_embeddings.npy", "filename_label": "gte_base_embeddings_labels.npy"},
+    {"type": "ollama", "model_name":"gte-large","name": "zyw0605688/gte-large-zh", "filename": "gte_large_embeddings.npy", "filename_label": "gte_large_embeddings_labels.npy"},
+    {"type": "ollama", "model_name":"e5-large","name": "jeffh/intfloat-multilingual-e5-large-instruct:q8_0", "filename": "e5_large_embeddings.npy", "filename_label": "e5_large_embeddings_labels.npy" }
 ]
 
+models_medical = [
+    {"type": "huggingface", "model_name": "bioclinicalbert", "name": "emilyalsentzer/Bio_ClinicalBERT", "filename": "bioclinicalbert_embeddings.npy", "filename_label": "bioclinicalbert_embeddings_labels.npy"},
+    {"type": "huggingface", "model_name": "pubmedbert", "name": "NeuML/pubmedbert-base-embeddings", "filename": "pubmedbert_embeddings.npy", "filename_label": "pubmedbert_embeddings_labels.npy"},
+    {"type": "huggingface", "model_name": "sentence-biobert", "name": "pritamdeka/BioBERT-mnli-snli-scinli-scitail-mednli-stsb", "filename": "sentence_biobert_embeddings.npy", "filename_label": "sentence_biobert_embeddings_labels.npy"},
+]
+
+models_all = models_ollama + models_medical
 
 results = {
     "e5-base":    {"acc": [], "f1": [], "auc": [], "tau": []},

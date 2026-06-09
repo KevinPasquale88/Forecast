@@ -1,6 +1,6 @@
 # 📊 Encoder Evaluation Report
 
-**Generated:** 2026-05-17 03:11
+**Generated:** 2026-06-10 00:11
 
 ---
 
@@ -14,17 +14,23 @@ Verify the robustness and reliability of the pipeline based on embeddings genera
 - **gte-base**
 - **gte-large**
 - **e5-large**
+- **bioclinicalbert**
+- **pubmedbert**
+- **sentence-biobert**
 
 ---
 
 ## 📈 Metric results with confidence intervals (Bootstrap 10,000)
 
-| model     |   acc_mean |   acc_ci_low |   acc_ci_high |   f1_mean |   f1_ci_low |   f1_ci_high |   auc_mean |   auc_ci_low |   auc_ci_high |
-|:----------|-----------:|-------------:|--------------:|----------:|------------:|-------------:|-----------:|-------------:|--------------:|
-| e5-base   |   0.702475 |     0.669837 |      0.735054 |  0.663689 |    0.627163 |     0.699388 |   0.755398 |     0.71977  |      0.79032  |
-| gte-base  |   0.783989 |     0.754076 |      0.8125   |  0.777546 |    0.746772 |     0.807024 |   0.826351 |     0.795846 |      0.855741 |
-| gte-large |   0.707999 |     0.673913 |      0.740489 |  0.683694 |    0.648373 |     0.718399 |   0.751569 |     0.715765 |      0.785562 |
-| e5-large  |   0.74328  |     0.711957 |      0.774457 |  0.735407 |    0.702841 |     0.767215 |   0.773525 |     0.739377 |      0.807318 |
+| model            |   acc_mean |   acc_ci_low |   acc_ci_high |   f1_mean |   f1_ci_low |   f1_ci_high |   auc_mean |   auc_ci_low |   auc_ci_high |
+|:-----------------|-----------:|-------------:|--------------:|----------:|------------:|-------------:|-----------:|-------------:|--------------:|
+| e5-base          |   0.702475 |     0.669837 |      0.735054 |  0.663689 |    0.627163 |     0.699388 |   0.755517 |     0.719823 |      0.7904   |
+| gte-base         |   0.743249 |     0.711957 |      0.774457 |  0.7236   |    0.689699 |     0.756713 |   0.793294 |     0.75964  |      0.82578  |
+| gte-large        |   0.707999 |     0.673913 |      0.740489 |  0.683694 |    0.648373 |     0.718399 |   0.751501 |     0.715792 |      0.7854   |
+| e5-large         |   0.74328  |     0.711957 |      0.774457 |  0.735407 |    0.702841 |     0.767215 |   0.773563 |     0.739442 |      0.8074   |
+| bioclinicalbert  |   0.800207 |     0.77038  |      0.828804 |  0.791667 |    0.760856 |     0.821404 |   0.840417 |     0.810464 |      0.869265 |
+| pubmedbert       |   0.79609  |     0.766304 |      0.824762 |  0.78492  |    0.753913 |     0.815538 |   0.839983 |     0.810133 |      0.868158 |
+| sentence-biobert |   0.773138 |     0.741848 |      0.802989 |  0.759944 |    0.728137 |     0.791531 |   0.817376 |     0.785708 |      0.847807 |
 
 
 ---
@@ -47,6 +53,18 @@ Verify the robustness and reliability of the pipeline based on embeddings genera
 
 ![ROC e5-large](../graphics/ROC_e5-large.png)
 
+### bioclinicalbert
+
+![ROC bioclinicalbert](../graphics/ROC_bioclinicalbert.png)
+
+### pubmedbert
+
+![ROC pubmedbert](../graphics/ROC_pubmedbert.png)
+
+### sentence-biobert
+
+![ROC sentence-biobert](../graphics/ROC_sentence-biobert.png)
+
 
 ---
 
@@ -67,6 +85,18 @@ Verify the robustness and reliability of the pipeline based on embeddings genera
 ### e5-large
 
 ![CM e5-large](../graphics/CM_e5-large.png)
+
+### bioclinicalbert
+
+![CM bioclinicalbert](../graphics/CM_bioclinicalbert.png)
+
+### pubmedbert
+
+![CM pubmedbert](../graphics/CM_pubmedbert.png)
+
+### sentence-biobert
+
+![CM sentence-biobert](../graphics/CM_sentence-biobert.png)
 
 
 ---

@@ -1,12 +1,12 @@
 import numpy as np
 import pandas as pd
-from function import models_ollama, plot_boxplots, plot_confusion, plot_roc
+from function import models_all, plot_boxplots, plot_confusion, plot_roc
 from sklearn.metrics import accuracy_score, f1_score, roc_auc_score
 
 def evaluate_results():
     bootstrap_results = {}
     summary_rows = []
-    for model in models_ollama:
+    for model in models_all:
         print(f"\n=== Analyzing: {model['model_name']} ===")
         # load data
         y_true = np.load(f"datas/results/{model['model_name']}_y_true.npy")
