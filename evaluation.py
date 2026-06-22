@@ -17,6 +17,9 @@ def evaluate_results():
         
         bootstrap_metrics_dict = bootstrap_metrics(y_true, y_score, y_pred)
         bootstrap_results[model["model_name"]] = bootstrap_metrics_dict
+        np.save(f"datas/results/{model['model_name']}_boot_acc.npy", bootstrap_metrics_dict["acc"])
+        np.save(f"datas/results/{model['model_name']}_boot_f1.npy",  bootstrap_metrics_dict["f1"])
+        np.save(f"datas/results/{model['model_name']}_boot_auc.npy", bootstrap_metrics_dict["auc"])
         print(f"Bootstrap Accuracy: {bootstrap_metrics_dict['acc'].mean():.4f}")
         print(f"Bootstrap F1-Score: {bootstrap_metrics_dict['f1'].mean():.4f}")
         print(f"Bootstrap AUC: {bootstrap_metrics_dict['auc'].mean():.4f}")

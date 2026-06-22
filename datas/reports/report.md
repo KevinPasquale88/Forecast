@@ -1,6 +1,6 @@
 # 📊 Encoder Evaluation Report
 
-**Generated:** 2026-06-10 00:11
+**Generated:** 2026-06-22 17:31
 
 ---
 
