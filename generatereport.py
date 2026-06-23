@@ -12,6 +12,28 @@ def load_summary(summary_path="datas/results/encoder_comparison_summary.csv"):
     return pd.read_csv(summary_path)
 
 
+def load_statistical_results(wilcoxon_path="datas/results/wilcoxon_comparison.csv",
+                             ttest_path="datas/results/ttest_comparison.csv",
+                             delong_path="datas/results/delong_comparison.csv"):
+    results = {}
+    if os.path.exists(wilcoxon_path):
+        results["wilcoxon"] = pd.read_csv(wilcoxon_path)
+    else:
+        results["wilcoxon"] = None
+
+    if os.path.exists(ttest_path):
+        results["ttest"] = pd.read_csv(ttest_path)
+    else:
+        results["ttest"] = None
+
+    if os.path.exists(delong_path):
+        results["delong"] = pd.read_csv(delong_path)
+    else:
+        results["delong"] = None
+
+    return results
+
+
 # ============================================================
 #  BUILD MARKDOWN CONTENT
 # ============================================================
@@ -74,6 +96,39 @@ def generate_markdown(summary):
         md.append(f"![Boxplot]({real_boxplot_path})\n")
 
     md.append("\n---\n")
+
+    # ============================
+    # STATISTICAL TESTS
+    # ============================
+
+    stat_results = load_statistical_results()
+    if stat_results["wilcoxon"] is not None or stat_results["ttest"] is not None or stat_results["delong"] is not None:
+        md.append("## 🧪 Statistical Tests\n")
+        md.append("This section reports pairwise comparisons between model bootstrap metrics using Wilcoxon signed-rank tests, paired t-tests, and DeLong AUC comparisons.\n")
+
+        if stat_results["wilcoxon"] is not None:
+            md.append("### Wilcoxon Signed-Rank Test\n")
+            md.append("The Wilcoxon test compares paired bootstrap distributions for each model pair.\n")
+            md.append(stat_results["wilcoxon"].to_markdown(index=False))
+            md.append("\n\n")
+
+        if stat_results["ttest"] is not None:
+            md.append("### Paired t-test\n")
+            md.append("The paired t-test compares paired bootstrap means for each model pair.\n")
+            md.append(stat_results["ttest"].to_markdown(index=False))
+            md.append("\n\n")
+
+        if stat_results["delong"] is not None:
+            md.append("### DeLong AUC Comparison\n")
+            md.append("The DeLong test compares AUC performance between model pairs on the same test labels.\n")
+            md.append(stat_results["delong"].to_markdown(index=False))
+            md.append("\n\n")
+
+        md.append("---\n")
+    else:
+        md.append("## 🧪 Statistical Tests\n")
+        md.append("No statistical test results were found. Ensure `datas/results/wilcoxon_comparison.csv`, `datas/results/ttest_comparison.csv`, and `datas/results/delong_comparison.csv` are generated before running report generation.\n")
+        md.append("---\n")
 
     # ============================
     # DISCUSSION
