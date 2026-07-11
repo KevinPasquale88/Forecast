@@ -16,6 +16,7 @@ def training_classifier():
         all_y_scores = []
         all_y_preds  = []
         all_y_true   = []
+        all_val_idx  = []
         for train_idx, val_idx in kf.split(X, y):
             X_train, X_val = X[train_idx], X[val_idx]
             y_train, y_val = y[train_idx], y[val_idx]
@@ -38,6 +39,7 @@ def training_classifier():
             all_y_true.append(y_val)
             all_y_scores.append(y_score)
             all_y_preds.append(y_pred)
+            all_val_idx.append(val_idx)
         acc_mean = np.mean([r[0] for r in tmp_results])
         f1_mean  = np.mean([r[1] for r in tmp_results])
         auc_mean = np.mean([r[2] for r in tmp_results])
@@ -55,10 +57,12 @@ def training_classifier():
         all_y_true  = np.concatenate(all_y_true)
         all_y_scores = np.concatenate(all_y_scores)
         all_y_preds = np.concatenate(all_y_preds)
+        all_val_idx = np.concatenate(all_val_idx)
         np.save(f"datas/results/{model['model_name']}_y_true.npy", all_y_true)
         np.save(f"datas/results/{model['model_name']}_y_score.npy", all_y_scores)
         np.save(f"datas/results/{model['model_name']}_y_pred.npy", all_y_preds)
-        print(f"[OK] Saved y_true, y_score, y_pred for model {model['model_name']}")
+        np.save(f"datas/results/{model['model_name']}_val_idx.npy", all_val_idx)
+        print(f"[OK] Saved y_true, y_score, y_pred, val_idx for model {model['model_name']}")
     df = pd.DataFrame(results).T   # transpose to have models as rows
     df.to_csv("datas/results/model_performance.csv")
     print("Saved to model_performance.csv")

@@ -6,7 +6,22 @@ Automatic disease prediction from clinical datasets using a local pipeline based
 ## Project Description
 This thesis aims to build a fully local classification pipeline using the same technology as the advisor's work: a Python + Ollama environment that runs language or embedding models without relying on external APIs. The goal is to predict the presence or absence of a pathology from structured clinical data while ensuring privacy and full reproducibility.
 
-This repository is organized into four main phases: dataset, preprocessing, embedding, training (classification), and evaluation. Below is a concise description of each phase and quick instructions to run the project.
+The pipeline runs in six phases: preprocessing, embedding generation, classification, evaluation, error analysis, and statistical testing, followed by an automated markdown report. Below is a concise description of each phase, the research questions the pipeline is designed to answer, and quick instructions to run the project.
+
+## Research Questions
+
+**Primary research question:**
+> L'utilizzo di embedding semantici generati localmente tramite modelli linguistici consente di supportare efficacemente task di classificazione clinica a partire da dati strutturati convertiti in linguaggio naturale?
+
+**Secondary research question:**
+> Gli embedding model specializzati per il dominio biomedicale producono rappresentazioni semantiche più efficaci rispetto ai modelli general-purpose nel task di classificazione clinica basato su dati tabellari trasformati in testo?
+
+The secondary question is answered directly by the pipeline's model configuration in [function.py](function.py), which tags every encoder with a `family`:
+- **general-purpose**: `e5-base`, `e5-large`, `gte-base`, `gte-large` (`models_ollama`)
+- **biomedical**: `bioclinicalbert`, `pubmedbert` (`models_medical`)
+- **biomedical sentence-transformers**: `sentence-biobert` (`models_medical`)
+
+This grouping drives the Model Family Comparison plot (see [Evaluation and Visualization](#evaluation-and-visualization)) and the color palette used across every figure.
 
 ## Dataset
 
@@ -75,6 +90,45 @@ This approach bridges structured clinical data and semantic embeddings, enabling
 - **Dataset source**: Janosi, A., Steinbrunn, W., Pfisterer, M., & Detrano, R. (1988). Heart Disease. UCI Machine Learning Repository. https://doi.org/10.24432/C52P4W
 - **Original publications**: Detrano, R., Janosi, A., Steinbrunn, W., Pfisterer, M., Schmid, K., Sandhu, S., ... & Froelicher, V. (1989). "International application of a new probability algorithm for the diagnosis of coronary artery disease." American Journal of Cardiology, 64(5), 304-310.
 
+## Prerequisites
+- **Python**: 3.14 (the committed virtual environment in `env/` is built against this version; earlier 3.x versions are untested).
+- **Platform**: developed and verified on Apple Silicon (arm64/macOS). No ARM-specific issues have been encountered with the current dependency set (PyTorch, sentence-transformers, umap-learn all ship arm64 wheels); on Intel/Linux the same steps should apply, but this hasn't been verified.
+- **Ollama**: required and must be installed and running locally — the general-purpose embedding models (E5, GTE) are served through it. Install from [ollama.com](https://ollama.com).
+- **Hugging Face access**: the biomedical models (`bioclinicalbert`, `pubmedbert`, `sentence-biobert`) are downloaded via `sentence-transformers`/`huggingface_hub`, which requires a `.env` file in the project root with `HF_READ_TOKEN` and `OFFLINE_MODE` (see [Installation](#installation), step 5).
+- **Hardware**: no GPU required. The slow steps are local embedding generation (Ollama inference + downloading/running the biomedical transformer models on CPU) and the 10,000-iteration bootstrap in the evaluation phase — expect the full pipeline to take from several minutes to tens of minutes depending on machine specs. At least ~8 GB of free RAM is recommended for the HuggingFace models.
+
+## Installation
+1. Clone the repository and move into it.
+2. Create and activate the virtual environment:
+   ```bash
+   python3 -m venv env
+   source env/bin/activate
+   ```
+3. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+4. Install and start Ollama, then pull the general-purpose models used by the pipeline (`models_ollama` in `function.py`):
+   ```bash
+   ollama serve &
+   ollama pull yxchia/multilingual-e5-base
+   ollama pull twwch/m3e-base
+   ollama pull zyw0605688/gte-large-zh
+   ollama pull jeffh/intfloat-multilingual-e5-large-instruct:q8_0
+   ```
+5. Create a `.env` file in the project root with the Hugging Face token and offline-mode flag used for the biomedical model calls in `embedding.py`:
+   ```
+   HF_READ_TOKEN=your_token_here
+   OFFLINE_MODE=0
+   ```
+   `HF_READ_TOKEN` authenticates with Hugging Face (needed the first time each biomedical model is downloaded, or if a model is gated); `OFFLINE_MODE=1` forces `sentence-transformers` to use only the local cache (set it to `1` after the models have already been downloaded once, to skip the network check).
+6. Run the pipeline:
+   ```bash
+   python main.py
+   ```
+
+Alternatively, `./run_all.sh` automates steps 2–6 end-to-end (creates/activates `env`, installs dependencies, starts Ollama, pulls the required models, and runs `main.py`).
+
 ## Preprocessing
 - Main file: [preprocessing.py](preprocessing.py)
 - Steps performed:
@@ -86,12 +140,13 @@ This approach bridges structured clinical data and semantic embeddings, enabling
   - `clean_data(X, y)` — builds and fits the preprocessing pipeline
   - `data_processed(...)` — generates the transformed DataFrame ready for analysis
   - `record_to_text(row)` — converts a row into a text description (used for embedding generation)
+- Also persists `datas/preprocessing/X_train_raw.csv`: the raw (pre-encoding) clinical features in the exact row order used for embedding generation, later used by the error analysis phase to trace predictions back to real patient records.
 
 ## Embedding
 - Main file: [embedding.py](embedding.py)
 - Description:
-  - Vector representations are generated using the `ollama` client in `main.py`.
-  - The available model list is defined in `embedding.py` via `models_ollama`.
+  - Vector representations are generated using the `ollama` client for general-purpose models, and `sentence-transformers` for biomedical models.
+  - The available model list is defined in `function.py` via `models_ollama` (general-purpose) and `models_medical` (biomedical), combined into `models_all`.
   - Embeddings and labels are saved to `.npy` files using `save_embeddings_to_npy()` and `save_labels_to_npy()`.
 
 ## Training / Classification
@@ -101,112 +156,27 @@ This approach bridges structured clinical data and semantic embeddings, enabling
   - Validation: `StratifiedKFold` with 5 folds
   - Each fold selects an optimal threshold by maximizing F1 from the precision-recall curve
   - Reported metrics: Accuracy, Macro-F1, ROC-AUC, and mean optimized threshold
-  - Uncertainty estimation via bootstrap on metrics (see `bootstrap_metrics`)
+  - Uncertainty estimation via bootstrap on metrics (see `bootstrap_metrics` in `evaluation.py`)
+  - Per-fold validation indices are also saved (`{model}_val_idx.npy`), so every prediction can be traced back to its original clinical record for error analysis
 
 ## Evaluation and Visualization
 - Main file: [evaluation.py](evaluation.py)
-- Generated plots:
-  - 2D PCA of preprocessed vectors
-  - ROC curves for each model
-  - Confusion matrices
-  - Bootstrap metric boxplots
+- Generated plots (all saved as 300 DPI PNG, white background, colorblind-safe family-consistent palette):
+  - UMAP 2D projection of preprocessed vectors (`datas/graphics/UMAP_*`)
+  - Unified ROC curve comparison across all models, including biomedical ones (`datas/graphics/ROC_comparison`)
+  - Confusion matrices per model (`datas/graphics/CM_*`)
+  - Bootstrap metric boxplots per model (`datas/results/BOXPLOT_metrics`)
+  - Mean ± bootstrap 95% confidence interval (and ± 1 SD) per model, per metric (`datas/results/MeanCI_metrics`)
+  - Model family comparison: pooled bootstrap distributions for general-purpose vs. biomedical vs. biomedical sentence-transformer encoders (`datas/results/FamilyComparison_metrics`)
 
-## Analisi dell'Errore
-
-### Obiettivi dell'Analisi
-Beyond reporting aggregate metrics (accuracy, F1, AUC), this project includes a qualitative analysis of misclassifications to understand:
-- **Failure modes**: In which clinical scenarios does the model struggle?
-- **Semantic representation limits**: What are the limitations of the embedding space for clinical discrimination?
-- **Intrinsic difficulty**: Which cases are inherently harder to classify?
-- **Error patterns**: Are there recurring characteristics in misclassified patients?
-
-### Falsi Positivi (False Positives)
-**Definition**: Patients predicted as having heart disease but who are actually healthy.
-
-**Clinical implications**:
-- Unnecessary interventions and patient anxiety
-- Resource allocation inefficiency
-- Potential for iatrogenic harm from unnecessary treatments
-
-**Analysis**:
-- Identifying feature combinations that trigger false alarms
-- Examining whether certain feature patterns (e.g., borderline chest pain + mild hypertension) consistently cause over-prediction
-- Comparing semantic representations of FP cases vs. true negative controls
-
-### Falsi Negativi (False Negatives)
-**Definition**: Patients predicted as healthy but who actually have heart disease.
-
-**Clinical implications**:
-- Delayed diagnosis and potentially severe health consequences
-- Most critical from a clinical safety perspective
-- May indicate cases where semantic embeddings fail to capture subtle disease indicators
-
-**Analysis**:
-- Identifying clinical patterns consistently missed by the model
-- Examining feature ranges and feature interactions unique to FN cases
-- Assessing whether "atypical presentations" are underrepresented in the embedding space
-- Evaluating whether certain patient subgroups (e.g., by age, risk factors) have higher FN rates
-
-### Pattern Ricorrenti nei Pazienti Classificati Male
-**Systematic error patterns to investigate**:
-
-1. **By clinical feature**:
-   - Which features most frequently contribute to errors?
-   - Are errors concentrated in patients with specific feature combinations?
-   - Do preprocessing/imputation strategies affect error distribution?
-
-2. **By data centre origin**:
-   - Do certain hospital centers have systematically higher error rates?
-   - Could this indicate dataset-specific characteristics or diagnostic practice variations?
-
-3. **By patient demographics**:
-   - Age-stratified error analysis
-   - Sex-based differences in classification performance
-   - Risk factor combinations
-
-4. **By embedding model**:
-   - Which encoder models produce larger error sets?
-   - Are FP and FN distributions consistent across different embedding models?
-   - How does semantic representation quality correlate with error rates?
-
-### Feature Cliniche e Ambiguità
-**Feature-level analysis**:
-- **Boundary cases**: Patients with features near decision thresholds
-- **Feature ambiguity**: Clinical features inherently difficult to distinguish between disease/no-disease
-  - E.g., chest pain type (overlapping symptom presentations across disease states)
-  - ST depression (present in both pathological and benign contexts)
-  - Heart rate response to exercise (variable across healthy individuals)
-
-- **Semantic representation gaps**: Some feature combinations might lack discriminative representation in the embedding space
-  - Missing nuanced clinical relationships
-  - Limited generalization to rare feature combinations
-  - Insufficient representation of complex interactions between features
-
-### Limitazioni Metodologiche Identificate
-Through error analysis, the following limitations emerge:
-
-1. **Data limitations**:
-   - Historical dataset (1980s-1990s) may not reflect modern diagnostic standards
-   - Imbalanced class distribution (partially addressed via SMOTE)
-   - Missing feature interactions potentially important for diagnosis
-
-2. **Semantic representation limits**:
-   - Biomedical encoders trained on natural language may not optimally encode tabular clinical data
-   - Text descriptions of structured data might lose important relational information
-   - Embedding space dimensionality and learned representations may not capture all clinical nuances
-
-3. **Model limitations**:
-   - LogisticRegression assumes linear separability in embedding space
-   - Single threshold optimization per fold may not generalize across diverse patient populations
-   - Bootstrap uncertainty estimates assume data homogeneity
-
-### Raccomandazioni per Miglioramenti Futuri
-- Implement instance-level error explanations (e.g., SHAP, LIME)
-- Conduct stratified analysis by risk factors and demographics
-- Investigate decision boundary visualization in embedding space
-- Explore non-linear classifiers on embedding representations
-- Perform ablation studies on feature engineering choices
-- Compare error patterns across different embedding models systematically
+## Error Analysis
+- Main file: [error_analysis.py](error_analysis.py)
+- Beyond aggregate metrics, this phase traces every misclassification back to the real clinical record using the `val_idx` saved during training, and computes:
+  - **Per-model error rates**: false positive rate and false negative rate for every model (`datas/results/error_summary.csv`, plotted in `ErrorAnalysis_rates`)
+  - **Misclassified records**: the actual false positive / false negative clinical records per model (`datas/results/{model}_false_positives.csv`, `{model}_false_negatives.csv`)
+  - **Hardest cases**: the patient records misclassified most often across models — candidates for intrinsically ambiguous or atypical presentations (`datas/results/hardest_cases.csv`)
+  - **Feature deviation**: the standardized mean difference of each numeric clinical feature (age, blood pressure, cholesterol, max heart rate, ST depression, number of major vessels) between misclassified and correctly classified cases, pooled across all models — highlighting which features are associated with classification ambiguity (`datas/results/feature_deviation.csv`, plotted in `ErrorAnalysis_feature_deviation`)
+- All of the above are included in the generated report (see `generatereport.py`), so the discussion of failure modes is grounded in the actual run's data rather than a fixed narrative.
 
 ## Test Statistici
 
@@ -261,12 +231,23 @@ The following performance metrics are compared across all model pairs:
 - P-value
 - Significance flag (1 if p < 0.05, else 0)
 
+#### 3. DeLong Test
+**Purpose**: Compares ROC-AUC between two correlated models evaluated on the same labels.
+
+**When used**:
+- Directly testing whether the AUC difference between two embedding models is statistically significant
+- Implemented via `MLstatkit.Delong_test`
+
+**Output**:
+- z-statistic, p-value, AUC for each model, and the AUC delta
+
 ### Interpretazione dei Risultati
-Results are saved in two CSV files:
+Results are saved in three CSV files:
 - `datas/results/wilcoxon_comparison.csv` — Wilcoxon signed-rank test results
 - `datas/results/ttest_comparison.csv` — Paired t-test results
+- `datas/results/delong_comparison.csv` — DeLong AUC comparison results
 
-**Key columns**:
+**Key columns** (Wilcoxon/t-test):
 - `metric`: Performance metric being compared (acc, f1, auc)
 - `model_a`, `model_b`: Models in comparison
 - `mean_a`, `mean_b`: Mean bootstrap scores for each model
@@ -288,10 +269,11 @@ Results are saved in two CSV files:
   - Example: A 5% difference in sensitivity may be both statistically and clinically significant (especially for FN implications)
 
 ### Robustezza del Test
-**Why both Wilcoxon and paired t-test**:
+**Why Wilcoxon, paired t-test, and DeLong together**:
 - Provides cross-validation of results through complementary statistical approaches
 - Wilcoxon is more robust if normality assumption is violated
 - Paired t-test has higher power if normality assumption holds
+- DeLong is AUC-specific and accounts for the correlation between models evaluated on the same labels
 - Consistency between tests strengthens confidence in results
 
 **Bootstrap validation**:
@@ -299,24 +281,34 @@ Results are saved in two CSV files:
 - StratifiedKFold ensures representative sampling
 - Reduces false discovery rate from repeated comparisons
 
-### Execution in Pipeline
-Statistical testing is **Phase 5** of the main pipeline (after evaluation, before report generation):
-```
-Phase 1: Preprocessing → Phase 2: Embedding → Phase 3: Classification
-    → Phase 4: Evaluation → Phase 5: Statistical Tests → Phase 6: Report Generation
-```
+## `datas/` Folder Structure
+| Folder | Contents |
+|---|---|
+| `datas/heart+disease/` | Raw UCI source files (`processed.cleveland.data`, etc.) |
+| `datas/preprocessing/` | `preprocessed_data.npy` / `preprocessed_labels.npy` (encoded features) and `X_train_raw.csv` (raw clinical features, row-aligned with embeddings) |
+| `datas/embeddings/` | Per-model embedding vectors (`*_embeddings.npy`) and labels (`*_embeddings_labels.npy`) |
+| `datas/results/` | Per-model predictions (`*_y_true/_y_score/_y_pred/_val_idx.npy`), bootstrap arrays (`*_boot_*.npy`), comparison tables (`encoder_comparison_summary.csv`, `wilcoxon/ttest/delong_comparison.csv`), error-analysis outputs (`error_summary.csv`, `hardest_cases.csv`, `*_false_positives/negatives.csv`, `feature_deviation.csv`), and the plots saved directly into this folder (boxplot, mean±CI, family comparison, error analysis) |
+| `datas/graphics/` | UMAP, ROC comparison, confusion matrix, and heatmap plots (PNG) |
+| `datas/reports/` | The generated `report.md` |
 
 ## Execution
-1. Activate the virtual environment:
+The full pipeline (preprocessing → embedding → classification → evaluation → error analysis → statistical tests → report) is orchestrated by `main.py`:
 ```bash
 source env/bin/activate
-```
-2. Run the main script:
-```bash
 python main.py
 ```
+or, to also automate environment setup and Ollama model downloads:
+```bash
+./run_all.sh
+```
+Note: embedding generation for the general-purpose models uses `ollama.Client` in `embedding.py` — ensure the Ollama service is running and the required models have been pulled (see [Installation](#installation)).
 
-Note: embedding generation uses `ollama.Client` in `main.py` — ensure the required service/endpoint is available and configured.
+## Troubleshooting
+- **ARM/x86 mismatch (Apple Silicon)**: make sure `python3` and the virtual environment are built natively for `arm64` (run `python3 -c "import platform; print(platform.machine())"` — it should print `arm64`, not `x86_64`, on Apple Silicon). A Rosetta-translated Python install can cause slow or failing installs of `torch`/`numba`.
+- **`ollama pull` / model not found errors**: the general-purpose models must be pulled before running the pipeline (see [Installation](#installation), step 4). Verify with `ollama list`.
+- **Hugging Face authentication / gated model errors**: set `HF_READ_TOKEN` in `.env` (see [Installation](#installation), step 5); for fully offline runs after the first download, set `OFFLINE_MODE=1`.
+- **`FileNotFoundError` on `.npy` files in `datas/embeddings` or `datas/results`**: an earlier phase hasn't completed successfully yet — rerun `python main.py` from the beginning, or check the console output of the specific phase (embedding generation and classification are the most failure-prone due to external model dependencies).
+- **Virtual environment issues**: if `source env/bin/activate` fails, delete the `env/` folder and recreate it (`python3 -m venv env`), then reinstall with `pip install -r requirements.txt`.
 
 ## Requirements
 - Check [requirements.txt](requirements.txt) for required dependencies.
@@ -326,4 +318,9 @@ Note: embedding generation uses `ollama.Client` in `main.py` — ensure the requ
 - `preprocessing.py` — data loading and preprocessing pipeline
 - `embedding.py` — model configuration and embedding saving
 - `classification.py` — classifier training and validation
-- `evaluation.py` — plotting and bootstrap utilities
+- `evaluation.py` — evaluation, bootstrap, and plotting orchestration
+- `error_analysis.py` — traces misclassifications back to clinical records and computes error patterns
+- `statisticaltest.py` — Wilcoxon, paired t-test, and DeLong significance tests
+- `function.py` — shared configuration (model list/families), plotting style, and plot functions
+- `generatereport.py` — assembles the final markdown report
+- `run_all.sh` — one-command setup + pipeline execution

@@ -43,13 +43,13 @@ fi
 echo ""
 echo "[INFO] Checking virtual environment..."
 
-if [ ! -d "venv" ]; then
+if [ ! -d "env" ]; then
     echo "[INFO] Creating new Python virtual environment..."
-    python3 -m venv venv
+    python3 -m venv env
 fi
 
 echo "[INFO] Activating virtual environment..."
-source venv/bin/activate
+source env/bin/activate
 
 echo ""
 echo "[INFO] Installing dependencies from requirements.txt..."
@@ -79,7 +79,7 @@ fi
 echo ""
 echo "[INFO] Checking Ollama models..."
 
-MODELS=("yxchia/multilingual-e5-base" "granite3-dense" "zyw0605688/gte-large-zh" "jeffh/intfloat-multilingual-e5-large-instruct:q8_0")
+MODELS=("yxchia/multilingual-e5-base" "twwch/m3e-base" "zyw0605688/gte-large-zh" "jeffh/intfloat-multilingual-e5-large-instruct:q8_0")
 
 for m in "${MODELS[@]}"; do
     if ollama list | grep -q "$m"; then

@@ -1,6 +1,6 @@
 # 📊 Encoder Evaluation Report
 
-**Generated:** 2026-07-11 17:47
+**Generated:** 2026-07-11 18:48
 
 ---
 
@@ -96,6 +96,51 @@ Mean metric per model with 95% bootstrap confidence interval (thin whisker) and 
 Bootstrap metric distributions pooled by model family: general-purpose vs. biomedical vs. biomedical sentence-transformers.
 
 ![Model Family Comparison](../results/FamilyComparison_metrics.png)
+
+
+---
+
+## 🩺 Error Analysis
+
+Misclassified cases (false positives / false negatives) are traced back to the original clinical record for every model, using the fold validation indices saved during training.
+
+### Error rates per model
+
+| model            |   n_errors |   n_fp |   n_fn |   fp_rate |   fn_rate |
+|:-----------------|-----------:|-------:|-------:|----------:|----------:|
+| e5-base          |        219 |    195 |     24 |  0.592705 | 0.0589681 |
+| gte-base         |        189 |    153 |     36 |  0.465046 | 0.0884521 |
+| gte-large        |        215 |    170 |     45 |  0.516717 | 0.110565  |
+| e5-large         |        189 |    118 |     71 |  0.358663 | 0.174447  |
+| bioclinicalbert  |        147 |    108 |     39 |  0.328267 | 0.0958231 |
+| pubmedbert       |        150 |    119 |     31 |  0.361702 | 0.0761671 |
+| sentence-biobert |        167 |    130 |     37 |  0.395137 | 0.0909091 |
+
+
+
+![Error Rates](../results/ErrorAnalysis_rates.png)
+
+### Clinical feature deviation: misclassified vs. correctly classified
+
+Standardized mean difference per clinical feature, pooled across all models (positive = higher in misclassified cases).
+
+![Feature Deviation](../results/ErrorAnalysis_feature_deviation.png)
+
+### Hardest cases (most frequently misclassified across models)
+
+|   age |   sex |   cp |   trestbps |   chol |   fbs |   restecg |   thalach |   exang |   oldpeak |   slope |   ca |   thal |   n_models_wrong |   n_models_evaluated |
+|------:|------:|-----:|-----------:|-------:|------:|----------:|----------:|--------:|----------:|--------:|-----:|-------:|-----------------:|---------------------:|
+|    57 |     1 |    4 |        130 |    207 |     0 |         1 |        96 |       1 |       1   |       2 |  nan |    nan |                7 |                    7 |
+|    58 |     1 |    4 |        132 |    458 |     1 |         0 |        69 |       0 |       1   |       3 |  nan |    nan |                7 |                    7 |
+|    61 |     1 |    4 |        125 |    292 |     0 |         1 |       115 |       1 |       0   |     nan |  nan |    nan |                7 |                    7 |
+|    57 |     1 |    4 |        110 |    201 |     0 |         0 |       126 |       1 |       1.5 |       2 |    0 |      6 |                7 |                    7 |
+|    54 |     1 |    4 |        140 |    239 |     0 |         0 |       160 |       0 |       1.2 |       1 |    0 |      3 |                7 |                    7 |
+|    47 |     1 |    4 |        112 |    204 |     0 |         0 |       143 |       0 |       0.1 |       1 |    0 |      3 |                7 |                    7 |
+|    59 |     1 |    4 |        140 |    274 |     0 |         0 |       154 |       1 |       2   |       2 |  nan |    nan |                7 |                    7 |
+|    39 |     1 |    4 |        110 |    273 |     0 |         0 |       132 |       0 |       0   |     nan |  nan |    nan |                7 |                    7 |
+|    58 |     0 |    2 |        136 |    319 |     1 |         2 |       152 |       0 |       0   |       1 |    2 |      3 |                7 |                    7 |
+|    43 |     1 |    4 |        110 |    211 |     0 |         0 |       161 |       0 |       0   |       1 |    0 |      7 |                7 |                    7 |
+
 
 
 ---

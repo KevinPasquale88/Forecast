@@ -114,6 +114,41 @@ def generate_markdown(summary):
     md.append("\n---\n")
 
     # ============================
+    # ERROR ANALYSIS
+    # ============================
+
+    error_summary_path = "datas/results/error_summary.csv"
+    if os.path.exists(error_summary_path):
+        md.append("## 🩺 Error Analysis\n")
+        md.append("Misclassified cases (false positives / false negatives) are traced back to the original clinical record for every model, using the fold validation indices saved during training.\n")
+
+        df_error_summary = pd.read_csv(error_summary_path)
+        md.append("### Error rates per model\n")
+        md.append(df_error_summary.to_markdown(index=False))
+        md.append("\n\n")
+
+        error_rates_path = "datas/results/ErrorAnalysis_rates.png"
+        real_error_rates_path = "../results/ErrorAnalysis_rates.png"
+        if os.path.exists(error_rates_path):
+            md.append(f"![Error Rates]({real_error_rates_path})\n")
+
+        feature_dev_path = "datas/results/ErrorAnalysis_feature_deviation.png"
+        real_feature_dev_path = "../results/ErrorAnalysis_feature_deviation.png"
+        if os.path.exists(feature_dev_path):
+            md.append("### Clinical feature deviation: misclassified vs. correctly classified\n")
+            md.append("Standardized mean difference per clinical feature, pooled across all models (positive = higher in misclassified cases).\n")
+            md.append(f"![Feature Deviation]({real_feature_dev_path})\n")
+
+        hardest_cases_path = "datas/results/hardest_cases.csv"
+        if os.path.exists(hardest_cases_path):
+            df_hardest = pd.read_csv(hardest_cases_path)
+            md.append("### Hardest cases (most frequently misclassified across models)\n")
+            md.append(df_hardest.head(10).to_markdown(index=False))
+            md.append("\n\n")
+
+        md.append("---\n")
+
+    # ============================
     # STATISTICAL TESTS
     # ============================
 

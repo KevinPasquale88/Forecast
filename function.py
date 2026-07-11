@@ -75,14 +75,10 @@ _configure_plot_style()
 
 
 def save_figure(fig, path_no_ext):
-    """Saves a figure as both a 300 DPI PNG (for the markdown report) and a vector PDF (for the thesis)."""
     fig.savefig(f"{path_no_ext}.png", dpi=300, bbox_inches="tight", facecolor="white")
-    fig.savefig(f"{path_no_ext}.pdf", bbox_inches="tight", facecolor="white")
 
 
 def get_model_palette(model_names):
-    """Maps each model name to a shade of its family's base color, so models in the
-    same family are visually grouped while remaining distinguishable."""
     family_members = {}
     for name in model_names:
         family = MODEL_FAMILY.get(name, "general-purpose")
@@ -118,7 +114,7 @@ def delete_files_preprocessing():
 
 def delete_files_results():
     folder = "datas/results"
-    pattern_list = ["model_performance","_y_true", "_y_score", "_y_pred", "BOXPLOT_metrics", "metric_comparison","encoder_comparison_summary", "MeanCI_metrics", "FamilyComparison_metrics"]
+    pattern_list = ["model_performance","_y_true", "_y_score", "_y_pred", "_val_idx", "BOXPLOT_metrics", "metric_comparison","encoder_comparison_summary", "MeanCI_metrics", "FamilyComparison_metrics", "error_summary", "hardest_cases", "false_positives", "false_negatives", "feature_deviation", "ErrorAnalysis"]
     for file_name in os.listdir(folder):
         full_path = os.path.join(folder, file_name)
         if os.path.isfile(full_path) and any(s in file_name for s in pattern_list):
@@ -180,7 +176,6 @@ def plot_boxplots(results_dict):
     plt.close(fig)
 
 def plot_roc_comparison(roc_data, filename="ROC_comparison"):
-    """roc_data: list of (model_name, y_true, y_score) tuples, one per model."""
     model_order = [name for name, _, _ in roc_data]
     palette = get_model_palette(model_order)
 
@@ -226,7 +221,6 @@ def plot_metric_comparison(df_summary):
     plt.close(fig)
 
 def plot_mean_ci(df_summary):
-    """Mean + 95% bootstrap CI (thin whisker) and +/-1 SD (thick whisker) per model, per metric."""
     metrics = [("acc", "Accuracy"), ("f1", "F1"), ("auc", "AUC")]
     df_sorted = df_summary.copy()
     df_sorted["family"] = df_sorted["model"].map(MODEL_FAMILY)
@@ -263,8 +257,6 @@ def plot_mean_ci(df_summary):
     plt.close(fig)
 
 def plot_family_comparison(bootstrap_results):
-    """Pools bootstrap distributions across models within the same family, to compare
-    general-purpose vs biomedical vs biomedical sentence-transformer encoders directly."""
     rows = []
     for model_name, metrics in bootstrap_results.items():
         family = MODEL_FAMILY.get(model_name, "general-purpose")
@@ -283,4 +275,33 @@ def plot_family_comparison(bootstrap_results):
     ax.set_title("Model Family Comparison - Bootstrap Metric Distributions")
     ax.legend(title="Model family", bbox_to_anchor=(1.02, 1), loc="upper left", frameon=False, borderaxespad=0)
     save_figure(fig, "datas/results/FamilyComparison_metrics")
+    plt.close(fig)
+
+def plot_error_rates(df_error_summary):
+    df_melted = df_error_summary.melt(id_vars="model", value_vars=["fp_rate", "fn_rate"],
+                                       var_name="error_type", value_name="rate")
+    df_melted["error_type"] = df_melted["error_type"].map({"fp_rate": "False Positive Rate", "fn_rate": "False Negative Rate"})
+    model_order = sorted(df_error_summary["model"], key=lambda m: (MODEL_FAMILY.get(m, ""), m))
+
+    fig, ax = plt.subplots(figsize=FIGSIZE_WIDE)
+    sns.barplot(data=df_melted, x="model", y="rate", hue="error_type", order=model_order,
+                palette=["#e34948", "#4a3aa7"], ax=ax)
+    ax.set_title("False Positive / False Negative Rate per Model")
+    ax.set_xlabel("Model")
+    ax.set_ylabel("Rate")
+    ax.tick_params(axis="x", rotation=30)
+    ax.legend(title=None, bbox_to_anchor=(1.02, 1), loc="upper left", frameon=False, borderaxespad=0)
+    save_figure(fig, "datas/results/ErrorAnalysis_rates")
+    plt.close(fig)
+
+def plot_feature_deviation(df_deviation):
+    df_sorted = df_deviation.reindex(df_deviation["deviation"].abs().sort_values().index)
+    colors = ["#e34948" if v > 0 else "#2a78d6" for v in df_sorted["deviation"]]
+
+    fig, ax = plt.subplots(figsize=FIGSIZE_STD)
+    ax.barh(df_sorted["feature"], df_sorted["deviation"], color=colors)
+    ax.axvline(0, color="#4d4d4d", linewidth=0.8)
+    ax.set_title("Feature Deviation: Misclassified vs. Correctly Classified")
+    ax.set_xlabel("Standardized mean difference (error - correct)")
+    save_figure(fig, "datas/results/ErrorAnalysis_feature_deviation")
     plt.close(fig)

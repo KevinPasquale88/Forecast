@@ -5,6 +5,7 @@ from embedding import embeddings
 from classification import training_classifier
 from function import delete_files_embeddings, delete_files_graphics, delete_files_preprocessing, delete_files_results
 from statisticaltest import test_statistical_tests
+from error_analysis import analyze_errors
 
 def main():
     #phase 0: clean up files pipelines and embeddings
@@ -24,11 +25,14 @@ def main():
     
     #evaluation phase 4: analyze results, plot graphs, save summary table
     evaluate_results()
-    
-    #test phase 5: perform statistical tests and save results
+
+    #error analysis phase 5: trace misclassified cases back to clinical features
+    analyze_errors()
+
+    #test phase 6: perform statistical tests and save results
     test_statistical_tests()
     
-    #report generation phase 6: create markdown report with results and graphs
+    #report generation phase 7: create markdown report with results and graphs
     generate_report()
 
 if __name__ == "__main__":

@@ -34,6 +34,11 @@ def preprocessing_data():
     print(X_train_emb_df.head())
     save_data_processed(X_train_emb_df)
     plot_data_heatmap(X_train_emb_df)
+
+    # Raw (pre-encoding) clinical features, row-order aligned with the embeddings generated from X_train,
+    # so predictions can be traced back to the original record for error analysis.
+    X_train.reset_index(drop=True).to_csv("datas/preprocessing/X_train_raw.csv", index=False)
+
     return X_train, y_train
     
 #load data from files and concatenate into one dataframe
