@@ -69,13 +69,11 @@ def generate_markdown(summary):
     # CHARTS INCLUDED IN REPORT
     # ============================
 
-    md.append("## 📉 ROC Curves\n")
-    for model in summary["model"]:
-        roc_path = f"datas/graphics/ROC_{model}.png"
-        real_roc_path = f"../graphics/ROC_{model}.png"
-        if os.path.exists(roc_path):
-            md.append(f"### {model}\n")
-            md.append(f"![ROC {model}]({real_roc_path})\n")
+    md.append("## 📉 ROC Curve Comparison\n")
+    roc_path = "datas/graphics/ROC_comparison.png"
+    real_roc_path = "../graphics/ROC_comparison.png"
+    if os.path.exists(roc_path):
+        md.append(f"![ROC Comparison]({real_roc_path})\n")
 
     md.append("\n---\n")
 
@@ -94,6 +92,24 @@ def generate_markdown(summary):
     if os.path.exists(boxplot_path):
         md.append("## 📦 Bootstrapped Metric Boxplot\n")
         md.append(f"![Boxplot]({real_boxplot_path})\n")
+
+    md.append("\n---\n")
+
+    meanci_path = "datas/results/MeanCI_metrics.png"
+    real_meanci_path = "../results/MeanCI_metrics.png"
+    if os.path.exists(meanci_path):
+        md.append("## 📐 Mean ± Confidence Interval\n")
+        md.append("Mean metric per model with 95% bootstrap confidence interval (thin whisker) and ±1 standard deviation (thick whisker).\n")
+        md.append(f"![Mean and Confidence Interval]({real_meanci_path})\n")
+
+    md.append("\n---\n")
+
+    family_path = "datas/results/FamilyComparison_metrics.png"
+    real_family_path = "../results/FamilyComparison_metrics.png"
+    if os.path.exists(family_path):
+        md.append("## 🧬 Model Family Comparison\n")
+        md.append("Bootstrap metric distributions pooled by model family: general-purpose vs. biomedical vs. biomedical sentence-transformers.\n")
+        md.append(f"![Model Family Comparison]({real_family_path})\n")
 
     md.append("\n---\n")
 

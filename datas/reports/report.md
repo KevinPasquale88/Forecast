@@ -1,6 +1,6 @@
 # 📊 Encoder Evaluation Report
 
-**Generated:** 2026-06-23 11:46
+**Generated:** 2026-07-11 17:47
 
 ---
 
@@ -22,48 +22,22 @@ Verify the robustness and reliability of the pipeline based on embeddings genera
 
 ## 📈 Metric results with confidence intervals (Bootstrap 10,000)
 
-| model            |   acc_mean |   acc_ci_low |   acc_ci_high |   f1_mean |   f1_ci_low |   f1_ci_high |   auc_mean |   auc_ci_low |   auc_ci_high |
-|:-----------------|-----------:|-------------:|--------------:|----------:|------------:|-------------:|-----------:|-------------:|--------------:|
-| e5-base          |   0.702475 |     0.669837 |      0.735054 |  0.663689 |    0.627163 |     0.699388 |   0.755517 |     0.719823 |      0.7904   |
-| gte-base         |   0.743249 |     0.711957 |      0.774457 |  0.7236   |    0.689699 |     0.756713 |   0.793294 |     0.75964  |      0.82578  |
-| gte-large        |   0.707999 |     0.673913 |      0.740489 |  0.683694 |    0.648373 |     0.718399 |   0.751501 |     0.715792 |      0.7854   |
-| e5-large         |   0.74328  |     0.711957 |      0.774457 |  0.735407 |    0.702841 |     0.767215 |   0.773563 |     0.739442 |      0.8074   |
-| bioclinicalbert  |   0.800207 |     0.77038  |      0.828804 |  0.791667 |    0.760856 |     0.821404 |   0.840417 |     0.810464 |      0.869265 |
-| pubmedbert       |   0.79609  |     0.766304 |      0.824762 |  0.78492  |    0.753913 |     0.815538 |   0.839983 |     0.810133 |      0.868158 |
-| sentence-biobert |   0.773138 |     0.741848 |      0.802989 |  0.759944 |    0.728137 |     0.791531 |   0.817376 |     0.785708 |      0.847807 |
+| model            |   acc_mean |   acc_ci_low |   acc_ci_high |   acc_std |   f1_mean |   f1_ci_low |   f1_ci_high |    f1_std |   auc_mean |   auc_ci_low |   auc_ci_high |   auc_std |
+|:-----------------|-----------:|-------------:|--------------:|----------:|----------:|------------:|-------------:|----------:|-----------:|-------------:|--------------:|----------:|
+| e5-base          |   0.702475 |     0.669837 |      0.735054 | 0.0169896 |  0.663689 |    0.627163 |     0.699388 | 0.0184043 |   0.755517 |     0.719823 |      0.7904   | 0.0179024 |
+| gte-base         |   0.743249 |     0.711957 |      0.774457 | 0.0161859 |  0.7236   |    0.689699 |     0.756713 | 0.0170965 |   0.793294 |     0.75964  |      0.82578  | 0.0168243 |
+| gte-large        |   0.707999 |     0.673913 |      0.740489 | 0.0168608 |  0.683694 |    0.648373 |     0.718399 | 0.0177684 |   0.751501 |     0.715792 |      0.7854   | 0.017948  |
+| e5-large         |   0.74328  |     0.711957 |      0.774457 | 0.0161749 |  0.735407 |    0.702841 |     0.767215 | 0.0165602 |   0.773563 |     0.739442 |      0.8074   | 0.0173278 |
+| bioclinicalbert  |   0.800207 |     0.77038  |      0.828804 | 0.0148289 |  0.791667 |    0.760856 |     0.821404 | 0.0153565 |   0.840417 |     0.810464 |      0.869265 | 0.0149443 |
+| pubmedbert       |   0.79609  |     0.766304 |      0.824762 | 0.0149107 |  0.78492  |    0.753913 |     0.815538 | 0.0155568 |   0.839983 |     0.810133 |      0.868158 | 0.0150214 |
+| sentence-biobert |   0.773138 |     0.741848 |      0.802989 | 0.0154703 |  0.759944 |    0.728137 |     0.791531 | 0.0161761 |   0.817376 |     0.785708 |      0.847807 | 0.0159614 |
 
 
 ---
 
-## 📉 ROC Curves
+## 📉 ROC Curve Comparison
 
-### e5-base
-
-![ROC e5-base](../graphics/ROC_e5-base.png)
-
-### gte-base
-
-![ROC gte-base](../graphics/ROC_gte-base.png)
-
-### gte-large
-
-![ROC gte-large](../graphics/ROC_gte-large.png)
-
-### e5-large
-
-![ROC e5-large](../graphics/ROC_e5-large.png)
-
-### bioclinicalbert
-
-![ROC bioclinicalbert](../graphics/ROC_bioclinicalbert.png)
-
-### pubmedbert
-
-![ROC pubmedbert](../graphics/ROC_pubmedbert.png)
-
-### sentence-biobert
-
-![ROC sentence-biobert](../graphics/ROC_sentence-biobert.png)
+![ROC Comparison](../graphics/ROC_comparison.png)
 
 
 ---
@@ -104,6 +78,24 @@ Verify the robustness and reliability of the pipeline based on embeddings genera
 ## 📦 Bootstrapped Metric Boxplot
 
 ![Boxplot](../results/BOXPLOT_metrics.png)
+
+
+---
+
+## 📐 Mean ± Confidence Interval
+
+Mean metric per model with 95% bootstrap confidence interval (thin whisker) and ±1 standard deviation (thick whisker).
+
+![Mean and Confidence Interval](../results/MeanCI_metrics.png)
+
+
+---
+
+## 🧬 Model Family Comparison
+
+Bootstrap metric distributions pooled by model family: general-purpose vs. biomedical vs. biomedical sentence-transformers.
+
+![Model Family Comparison](../results/FamilyComparison_metrics.png)
 
 
 ---
