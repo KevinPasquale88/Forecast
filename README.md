@@ -74,9 +74,9 @@ Loading and concatenating these files is handled by `preprocessing.py::load_hear
 
 ### Limitations
 - **Temporal**: Historical data from the 1980s-1990s; may not reflect current diagnostic standards
-- **Representation**: Imbalanced class distribution in the original data (addressed via SMOTE in preprocessing)
+- **Representation**: Imbalanced class distribution in the original data (addressed via SMOTENC in preprocessing)
 - **Geographic bias**: Data predominantly from Western medical centers
-- **Missing values**: Some records contain missing attributes handled through imputation
+- **Missing values**: Some records contain missing attributes handled through imputation. Beyond the `?` placeholder, some source files (Switzerland, Hungary) encode missing cholesterol/resting blood pressure as `0`, which is not a physiologically valid value for either — `load_heart_disease()` in [preprocessing.py](preprocessing.py) converts these to `NaN` before imputation
 
 ### Methodological Context
 **Important clarification**: This project's contribution is NOT a direct classification task on tabular data. Rather, it implements a **tabular-to-text transformation pipeline** where:
@@ -91,7 +91,7 @@ This approach bridges structured clinical data and semantic embeddings, enabling
 - **Original publications**: Detrano, R., Janosi, A., Steinbrunn, W., Pfisterer, M., Schmid, K., Sandhu, S., ... & Froelicher, V. (1989). "International application of a new probability algorithm for the diagnosis of coronary artery disease." American Journal of Cardiology, 64(5), 304-310.
 
 ## Prerequisites
-- **Python**: 3.14 (the committed virtual environment in `env/` is built against this version; earlier 3.x versions are untested).
+- **Python**: 3.14 (developed and tested against this version; earlier 3.x versions are untested). The `env/` folder is a local virtual environment created by [Installation](#installation) step 2 — it is **not** committed to the repository (see `.gitignore`), so every clone must run `pip install -r requirements.txt` itself; if a pre-existing `env/` is missing packages that are listed in `requirements.txt`, just re-run `pip install -r requirements.txt` inside it rather than assuming the environment is complete.
 - **Platform**: developed and verified on Apple Silicon (arm64/macOS). No ARM-specific issues have been encountered with the current dependency set (PyTorch, sentence-transformers, umap-learn all ship arm64 wheels); on Intel/Linux the same steps should apply, but this hasn't been verified.
 - **Ollama**: required and must be installed and running locally — the general-purpose embedding models (E5, GTE) are served through it. Install from [ollama.com](https://ollama.com).
 - **Hugging Face access**: the biomedical models (`bioclinicalbert`, `pubmedbert`, `sentence-biobert`) are downloaded via `sentence-transformers`/`huggingface_hub`, which requires a `.env` file in the project root with `HF_READ_TOKEN` and `OFFLINE_MODE` (see [Installation](#installation), step 5).
@@ -131,16 +131,16 @@ Alternatively, `./run_all.sh` automates steps 2–6 end-to-end (creates/activate
 
 ## Preprocessing
 - Main file: [preprocessing.py](preprocessing.py)
-- Steps performed:
-  - handle missing values (median imputation for numeric features, most frequent imputation for categorical features)
-  - scale numeric features (`StandardScaler`)
-  - one-hot encode categorical features
-  - balance the target class using `SMOTE`
+- Steps performed, in order:
+  - handle missing values on the raw features (median imputation for numeric features, most frequent imputation for categorical features)
+  - balance the target class with `SMOTENC` on the raw/interpretable feature space (not on the scaled/encoded vectors), so synthetic records keep realistic values (real-scale numerics + valid categorical codes) and remain convertible to text like real records
+  - scale numeric features (`StandardScaler`) and one-hot encode categorical features — this encoded representation is used only for the UMAP projection and the correlation heatmap, not for the text descriptions
 - Useful functions:
-  - `clean_data(X, y)` — builds and fits the preprocessing pipeline
-  - `data_processed(...)` — generates the transformed DataFrame ready for analysis
-  - `record_to_text(row)` — converts a row into a text description (used for embedding generation)
-- Also persists `datas/preprocessing/X_train_raw.csv`: the raw (pre-encoding) clinical features in the exact row order used for embedding generation, later used by the error analysis phase to trace predictions back to real patient records.
+  - `impute_raw(X)` — fills missing values on the raw features
+  - `balance_classes(X, y)` — SMOTENC oversampling on the raw features
+  - `build_encoder(X, y)` / `data_processed(...)` — scaling + one-hot encoding for visualization
+  - `record_to_text(row)` — converts a row (all 13 clinical features) into a text description (used for embedding generation), defined in [embedding.py](embedding.py)
+- Also persists `datas/preprocessing/X_train_raw.csv`: the raw (pre-encoding), class-balanced clinical features in the exact row order used for embedding generation, later used by the error analysis phase to trace predictions back to the source record.
 
 ## Embedding
 - Main file: [embedding.py](embedding.py)
@@ -161,7 +161,7 @@ Alternatively, `./run_all.sh` automates steps 2–6 end-to-end (creates/activate
 
 ## Evaluation and Visualization
 - Main file: [evaluation.py](evaluation.py)
-- Generated plots (all saved as 300 DPI PNG, white background, colorblind-safe family-consistent palette):
+- Generated plots (all saved both as 300 DPI PNG and as vector PDF, white background, colorblind-safe family-consistent palette):
   - UMAP 2D projection of preprocessed vectors (`datas/graphics/UMAP_*`)
   - Unified ROC curve comparison across all models, including biomedical ones (`datas/graphics/ROC_comparison`)
   - Confusion matrices per model (`datas/graphics/CM_*`)
@@ -288,7 +288,7 @@ Results are saved in three CSV files:
 | `datas/preprocessing/` | `preprocessed_data.npy` / `preprocessed_labels.npy` (encoded features) and `X_train_raw.csv` (raw clinical features, row-aligned with embeddings) |
 | `datas/embeddings/` | Per-model embedding vectors (`*_embeddings.npy`) and labels (`*_embeddings_labels.npy`) |
 | `datas/results/` | Per-model predictions (`*_y_true/_y_score/_y_pred/_val_idx.npy`), bootstrap arrays (`*_boot_*.npy`), comparison tables (`encoder_comparison_summary.csv`, `wilcoxon/ttest/delong_comparison.csv`), error-analysis outputs (`error_summary.csv`, `hardest_cases.csv`, `*_false_positives/negatives.csv`, `feature_deviation.csv`), and the plots saved directly into this folder (boxplot, mean±CI, family comparison, error analysis) |
-| `datas/graphics/` | UMAP, ROC comparison, confusion matrix, and heatmap plots (PNG) |
+| `datas/graphics/` | UMAP, ROC comparison, confusion matrix, and heatmap plots (PNG + PDF) |
 | `datas/reports/` | The generated `report.md` |
 
 ## Execution
@@ -309,6 +309,7 @@ Note: embedding generation for the general-purpose models uses `ollama.Client` i
 - **Hugging Face authentication / gated model errors**: set `HF_READ_TOKEN` in `.env` (see [Installation](#installation), step 5); for fully offline runs after the first download, set `OFFLINE_MODE=1`.
 - **`FileNotFoundError` on `.npy` files in `datas/embeddings` or `datas/results`**: an earlier phase hasn't completed successfully yet — rerun `python main.py` from the beginning, or check the console output of the specific phase (embedding generation and classification are the most failure-prone due to external model dependencies).
 - **Virtual environment issues**: if `source env/bin/activate` fails, delete the `env/` folder and recreate it (`python3 -m venv env`), then reinstall with `pip install -r requirements.txt`.
+- **`ModuleNotFoundError` for a package listed in `requirements.txt`** (e.g. `imbalanced-learn`, `umap-learn`, `seaborn`): the environment was activated but `pip install -r requirements.txt` was never run (or was interrupted) inside it — `env/` is not committed to git, so this step can't be skipped on a fresh clone. Re-run `pip install -r requirements.txt` with the environment active; this is safe to repeat.
 
 ## Requirements
 - Check [requirements.txt](requirements.txt) for required dependencies.

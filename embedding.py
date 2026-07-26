@@ -4,6 +4,7 @@ import os
 from dotenv import load_dotenv
 from huggingface_hub import login
 import numpy as np
+import pandas as pd
 from ollama import Client
 from sentence_transformers import SentenceTransformer
 from function import models_all
@@ -11,12 +12,47 @@ from function import models_all
 def embeddings(X,y):
     texts = [record_to_text(r) for _, r in X.iterrows()]
     #embedding generation
-    generate_all_embeddings(texts, y.values)
+    generate_all_embeddings(texts, np.asarray(y))
 
+
+# Standard UCI Heart Disease attribute encodings
+CP_LABELS = {1: "typical angina", 2: "atypical angina", 3: "non-anginal pain", 4: "asymptomatic"}
+RESTECG_LABELS = {0: "normal", 1: "ST-T wave abnormality", 2: "left ventricular hypertrophy"}
+SLOPE_LABELS = {1: "upsloping", 2: "flat", 3: "downsloping"}
+THAL_LABELS = {3: "normal", 6: "fixed defect", 7: "reversable defect"}
+
+def _fmt_num(value, unit="", ndigits=1):
+    if pd.isna(value):
+        return "not recorded"
+    return f"{round(float(value), ndigits):g}{unit}"
+
+def _fmt_cat(value, labels):
+    if pd.isna(value):
+        return "not recorded"
+    return labels.get(int(round(float(value))), "unknown")
+
+def _fmt_bool(value, true_label, false_label):
+    if pd.isna(value):
+        return "not recorded"
+    return true_label if int(round(float(value))) == 1 else false_label
 
 def record_to_text(row):
-    desc = f"{'Male' if row['sex'] == 1 else 'Female'}, Years old: {row['age']}, Cholesterol: {row['chol']} mg/dl, Blood Pressure: {row['trestbps']}, Chest Pain: {row['cp']}"
-    return desc
+    sex = _fmt_bool(row["sex"], "Male", "Female")
+    parts = [
+        f"{sex} patient, {_fmt_num(row['age'], ndigits=0)} years old",
+        f"chest pain type: {_fmt_cat(row['cp'], CP_LABELS)}",
+        f"resting blood pressure: {_fmt_num(row['trestbps'], ' mm Hg', ndigits=0)}",
+        f"serum cholesterol: {_fmt_num(row['chol'], ' mg/dl', ndigits=0)}",
+        f"fasting blood sugar > 120 mg/dl: {_fmt_bool(row['fbs'], 'yes', 'no')}",
+        f"resting electrocardiographic results: {_fmt_cat(row['restecg'], RESTECG_LABELS)}",
+        f"maximum heart rate achieved: {_fmt_num(row['thalach'], ndigits=0)}",
+        f"exercise-induced angina: {_fmt_bool(row['exang'], 'yes', 'no')}",
+        f"ST depression induced by exercise: {_fmt_num(row['oldpeak'])}",
+        f"slope of the peak exercise ST segment: {_fmt_cat(row['slope'], SLOPE_LABELS)}",
+        f"number of major vessels colored by fluoroscopy: {_fmt_num(row['ca'], ndigits=0)}",
+        f"thalassemia: {_fmt_cat(row['thal'], THAL_LABELS)}",
+    ]
+    return ", ".join(parts)
 
 def save_embeddings_to_npy(embeddings, filename):
     embeddings = np.array(embeddings, dtype=np.float32)

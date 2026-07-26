@@ -1,6 +1,6 @@
 # 📊 Encoder Evaluation Report
 
-**Generated:** 2026-07-11 18:48
+**Generated:** 2026-07-26 10:21
 
 ---
 
@@ -24,13 +24,13 @@ Verify the robustness and reliability of the pipeline based on embeddings genera
 
 | model            |   acc_mean |   acc_ci_low |   acc_ci_high |   acc_std |   f1_mean |   f1_ci_low |   f1_ci_high |    f1_std |   auc_mean |   auc_ci_low |   auc_ci_high |   auc_std |
 |:-----------------|-----------:|-------------:|--------------:|----------:|----------:|------------:|-------------:|----------:|-----------:|-------------:|--------------:|----------:|
-| e5-base          |   0.702475 |     0.669837 |      0.735054 | 0.0169896 |  0.663689 |    0.627163 |     0.699388 | 0.0184043 |   0.755517 |     0.719823 |      0.7904   | 0.0179024 |
-| gte-base         |   0.743249 |     0.711957 |      0.774457 | 0.0161859 |  0.7236   |    0.689699 |     0.756713 | 0.0170965 |   0.793294 |     0.75964  |      0.82578  | 0.0168243 |
-| gte-large        |   0.707999 |     0.673913 |      0.740489 | 0.0168608 |  0.683694 |    0.648373 |     0.718399 | 0.0177684 |   0.751501 |     0.715792 |      0.7854   | 0.017948  |
-| e5-large         |   0.74328  |     0.711957 |      0.774457 | 0.0161749 |  0.735407 |    0.702841 |     0.767215 | 0.0165602 |   0.773563 |     0.739442 |      0.8074   | 0.0173278 |
-| bioclinicalbert  |   0.800207 |     0.77038  |      0.828804 | 0.0148289 |  0.791667 |    0.760856 |     0.821404 | 0.0153565 |   0.840417 |     0.810464 |      0.869265 | 0.0149443 |
-| pubmedbert       |   0.79609  |     0.766304 |      0.824762 | 0.0149107 |  0.78492  |    0.753913 |     0.815538 | 0.0155568 |   0.839983 |     0.810133 |      0.868158 | 0.0150214 |
-| sentence-biobert |   0.773138 |     0.741848 |      0.802989 | 0.0154703 |  0.759944 |    0.728137 |     0.791531 | 0.0161761 |   0.817376 |     0.785708 |      0.847807 | 0.0159614 |
+| e5-base          |   0.797279 |     0.769042 |      0.824324 | 0.0140129 |  0.794047 |    0.766033 |     0.821579 | 0.01423   |   0.865938 |     0.84062  |      0.889971 | 0.0125261 |
+| gte-base         |   0.789869 |     0.761671 |      0.816953 | 0.0142793 |  0.788329 |    0.760047 |     0.816032 | 0.0143745 |   0.840111 |     0.812213 |      0.866691 | 0.0138749 |
+| gte-large        |   0.786247 |     0.757985 |      0.814496 | 0.014411  |  0.783755 |    0.754944 |     0.812381 | 0.0145694 |   0.853989 |     0.827157 |      0.879692 | 0.0133106 |
+| e5-large         |   0.796147 |     0.767813 |      0.824324 | 0.0141214 |  0.792303 |    0.763573 |     0.820425 | 0.01437   |   0.866104 |     0.840607 |      0.890036 | 0.0126045 |
+| bioclinicalbert  |   0.796004 |     0.767813 |      0.823096 | 0.0141337 |  0.793183 |    0.764607 |     0.820725 | 0.0143055 |   0.879472 |     0.855968 |      0.901372 | 0.0115646 |
+| pubmedbert       |   0.811978 |     0.785012 |      0.837838 | 0.0136571 |  0.80898  |    0.781107 |     0.835427 | 0.0138756 |   0.88545  |     0.862156 |      0.906531 | 0.0114297 |
+| sentence-biobert |   0.82074  |     0.793612 |      0.846437 | 0.0133728 |  0.819523 |    0.792187 |     0.844937 | 0.0134552 |   0.87811  |     0.854395 |      0.900546 | 0.0118333 |
 
 
 ---
@@ -108,13 +108,13 @@ Misclassified cases (false positives / false negatives) are traced back to the o
 
 | model            |   n_errors |   n_fp |   n_fn |   fp_rate |   fn_rate |
 |:-----------------|-----------:|-------:|-------:|----------:|----------:|
-| e5-base          |        219 |    195 |     24 |  0.592705 | 0.0589681 |
-| gte-base         |        189 |    153 |     36 |  0.465046 | 0.0884521 |
-| gte-large        |        215 |    170 |     45 |  0.516717 | 0.110565  |
-| e5-large         |        189 |    118 |     71 |  0.358663 | 0.174447  |
-| bioclinicalbert  |        147 |    108 |     39 |  0.328267 | 0.0958231 |
-| pubmedbert       |        150 |    119 |     31 |  0.361702 | 0.0761671 |
-| sentence-biobert |        167 |    130 |     37 |  0.395137 | 0.0909091 |
+| e5-base          |        165 |    132 |     33 |  0.324324 | 0.0810811 |
+| gte-base         |        171 |    118 |     53 |  0.289926 | 0.130221  |
+| gte-large        |        174 |    129 |     45 |  0.316953 | 0.110565  |
+| e5-large         |        166 |    137 |     29 |  0.336609 | 0.0712531 |
+| bioclinicalbert  |        166 |    129 |     37 |  0.316953 | 0.0909091 |
+| pubmedbert       |        153 |    126 |     27 |  0.309582 | 0.0663391 |
+| sentence-biobert |        146 |    104 |     42 |  0.255528 | 0.103194  |
 
 
 
@@ -130,16 +130,16 @@ Standardized mean difference per clinical feature, pooled across all models (pos
 
 |   age |   sex |   cp |   trestbps |   chol |   fbs |   restecg |   thalach |   exang |   oldpeak |   slope |   ca |   thal |   n_models_wrong |   n_models_evaluated |
 |------:|------:|-----:|-----------:|-------:|------:|----------:|----------:|--------:|----------:|--------:|-----:|-------:|-----------------:|---------------------:|
-|    57 |     1 |    4 |        130 |    207 |     0 |         1 |        96 |       1 |       1   |       2 |  nan |    nan |                7 |                    7 |
-|    58 |     1 |    4 |        132 |    458 |     1 |         0 |        69 |       0 |       1   |       3 |  nan |    nan |                7 |                    7 |
-|    61 |     1 |    4 |        125 |    292 |     0 |         1 |       115 |       1 |       0   |     nan |  nan |    nan |                7 |                    7 |
+|    35 |     1 |    2 |        110 |    257 |     0 |         0 |       140 |       0 |       0   |       2 |    0 |      3 |                7 |                    7 |
+|    41 |     1 |    4 |        150 |    171 |     0 |         0 |       128 |       1 |       1.5 |       2 |    0 |      3 |                7 |                    7 |
+|    60 |     1 |    4 |        120 |    239 |     0 |         0 |       133 |       1 |       2   |       1 |    0 |      7 |                7 |                    7 |
+|    57 |     0 |    4 |        180 |    347 |     0 |         1 |       126 |       1 |       0.8 |       2 |    0 |      3 |                7 |                    7 |
+|    59 |     1 |    4 |        140 |    239 |     0 |         0 |       140 |       0 |       0   |       2 |    0 |      3 |                7 |                    7 |
+|    60 |     1 |    4 |        130 |    195 |     0 |         0 |       140 |       0 |       0.5 |       2 |    0 |      3 |                7 |                    7 |
 |    57 |     1 |    4 |        110 |    201 |     0 |         0 |       126 |       1 |       1.5 |       2 |    0 |      6 |                7 |                    7 |
-|    54 |     1 |    4 |        140 |    239 |     0 |         0 |       160 |       0 |       1.2 |       1 |    0 |      3 |                7 |                    7 |
-|    47 |     1 |    4 |        112 |    204 |     0 |         0 |       143 |       0 |       0.1 |       1 |    0 |      3 |                7 |                    7 |
-|    59 |     1 |    4 |        140 |    274 |     0 |         0 |       154 |       1 |       2   |       2 |  nan |    nan |                7 |                    7 |
-|    39 |     1 |    4 |        110 |    273 |     0 |         0 |       132 |       0 |       0   |     nan |  nan |    nan |                7 |                    7 |
-|    58 |     0 |    2 |        136 |    319 |     1 |         2 |       152 |       0 |       0   |       1 |    2 |      3 |                7 |                    7 |
-|    43 |     1 |    4 |        110 |    211 |     0 |         0 |       161 |       0 |       0   |       1 |    0 |      7 |                7 |                    7 |
+|    39 |     1 |    4 |        130 |    307 |     0 |         0 |       140 |       0 |       0   |       2 |    0 |      3 |                7 |                    7 |
+|    65 |     1 |    4 |        155 |    239 |     0 |         0 |       154 |       0 |       1   |       1 |    0 |      3 |                7 |                    7 |
+|    75 |     1 |    4 |        160 |    310 |     1 |         0 |       112 |       1 |       2   |       3 |    0 |      7 |                7 |                    7 |
 
 
 
@@ -155,69 +155,69 @@ The Wilcoxon test compares paired bootstrap distributions for each model pair.
 
 | metric   | model_a         | model_b          |   mean_a |   mean_b |        statistic |   p_value |   significant |
 |:---------|:----------------|:-----------------|---------:|---------:|-----------------:|----------:|--------------:|
-| acc      | e5-base         | gte-base         |   0.7025 |   0.7432 |     19           |    0      |             1 |
-| acc      | e5-base         | gte-large        |   0.7025 |   0.708  |      1.20847e+07 |    0      |             1 |
-| acc      | e5-base         | e5-large         |   0.7025 |   0.7433 |   4134.5         |    0      |             1 |
-| acc      | e5-base         | bioclinicalbert  |   0.7025 |   0.8002 |      0           |    0      |             1 |
-| acc      | e5-base         | pubmedbert       |   0.7025 |   0.7961 |      0           |    0      |             1 |
-| acc      | e5-base         | sentence-biobert |   0.7025 |   0.7731 |      0           |    0      |             1 |
-| acc      | gte-base        | gte-large        |   0.7432 |   0.708  |  34481.5         |    0      |             1 |
-| acc      | gte-base        | e5-large         |   0.7432 |   0.7433 |      2.30614e+07 |    0.6974 |             0 |
-| acc      | gte-base        | bioclinicalbert  |   0.7432 |   0.8002 |      0           |    0      |             1 |
-| acc      | gte-base        | pubmedbert       |   0.7432 |   0.7961 |      0           |    0      |             1 |
-| acc      | gte-base        | sentence-biobert |   0.7432 |   0.7731 | 200776           |    0      |             1 |
-| acc      | gte-large       | e5-large         |   0.708  |   0.7433 |  50107.5         |    0      |             1 |
-| acc      | gte-large       | bioclinicalbert  |   0.708  |   0.8002 |      0           |    0      |             1 |
-| acc      | gte-large       | pubmedbert       |   0.708  |   0.7961 |      0           |    0      |             1 |
-| acc      | gte-large       | sentence-biobert |   0.708  |   0.7731 |      0           |    0      |             1 |
-| acc      | e5-large        | bioclinicalbert  |   0.7433 |   0.8002 |      3           |    0      |             1 |
-| acc      | e5-large        | pubmedbert       |   0.7433 |   0.7961 |    213           |    0      |             1 |
-| acc      | e5-large        | sentence-biobert |   0.7433 |   0.7731 | 416940           |    0      |             1 |
-| acc      | bioclinicalbert | pubmedbert       |   0.8002 |   0.7961 |      1.39578e+07 |    0      |             1 |
-| acc      | bioclinicalbert | sentence-biobert |   0.8002 |   0.7731 | 102124           |    0      |             1 |
-| acc      | pubmedbert      | sentence-biobert |   0.7961 |   0.7731 |  59859.5         |    0      |             1 |
-| f1       | e5-base         | gte-base         |   0.6637 |   0.7236 |      0           |    0      |             1 |
-| f1       | e5-base         | gte-large        |   0.6637 |   0.6837 |      1.54791e+06 |    0      |             1 |
-| f1       | e5-base         | e5-large         |   0.6637 |   0.7354 |      0           |    0      |             1 |
-| f1       | e5-base         | bioclinicalbert  |   0.6637 |   0.7917 |      0           |    0      |             1 |
-| f1       | e5-base         | pubmedbert       |   0.6637 |   0.7849 |      0           |    0      |             1 |
-| f1       | e5-base         | sentence-biobert |   0.6637 |   0.7599 |      0           |    0      |             1 |
-| f1       | gte-base        | gte-large        |   0.7236 |   0.6837 |  45749           |    0      |             1 |
-| f1       | gte-base        | e5-large         |   0.7236 |   0.7354 |      6.90401e+06 |    0      |             1 |
-| f1       | gte-base        | bioclinicalbert  |   0.7236 |   0.7917 |      0           |    0      |             1 |
-| f1       | gte-base        | pubmedbert       |   0.7236 |   0.7849 |      0           |    0      |             1 |
-| f1       | gte-base        | sentence-biobert |   0.7236 |   0.7599 | 118163           |    0      |             1 |
-| f1       | gte-large       | e5-large         |   0.6837 |   0.7354 |   1469           |    0      |             1 |
-| f1       | gte-large       | bioclinicalbert  |   0.6837 |   0.7917 |      0           |    0      |             1 |
-| f1       | gte-large       | pubmedbert       |   0.6837 |   0.7849 |      0           |    0      |             1 |
-| f1       | gte-large       | sentence-biobert |   0.6837 |   0.7599 |      0           |    0      |             1 |
-| f1       | e5-large        | bioclinicalbert  |   0.7354 |   0.7917 |     17           |    0      |             1 |
-| f1       | e5-large        | pubmedbert       |   0.7354 |   0.7849 |   2053           |    0      |             1 |
-| f1       | e5-large        | sentence-biobert |   0.7354 |   0.7599 |      1.72461e+06 |    0      |             1 |
-| f1       | bioclinicalbert | pubmedbert       |   0.7917 |   0.7849 |      1.11102e+07 |    0      |             1 |
-| f1       | bioclinicalbert | sentence-biobert |   0.7917 |   0.7599 |  54868           |    0      |             1 |
-| f1       | pubmedbert      | sentence-biobert |   0.7849 |   0.7599 |  69046           |    0      |             1 |
-| auc      | e5-base         | gte-base         |   0.7555 |   0.7933 |      0           |    0      |             1 |
-| auc      | e5-base         | gte-large        |   0.7555 |   0.7515 |      1.41845e+07 |    0      |             1 |
-| auc      | e5-base         | e5-large         |   0.7555 |   0.7736 |   6300           |    0      |             1 |
-| auc      | e5-base         | bioclinicalbert  |   0.7555 |   0.8404 |      0           |    0      |             1 |
-| auc      | e5-base         | pubmedbert       |   0.7555 |   0.84   |      0           |    0      |             1 |
-| auc      | e5-base         | sentence-biobert |   0.7555 |   0.8174 |      0           |    0      |             1 |
-| auc      | gte-base        | gte-large        |   0.7933 |   0.7515 |     41           |    0      |             1 |
-| auc      | gte-base        | e5-large         |   0.7933 |   0.7736 | 317740           |    0      |             1 |
-| auc      | gte-base        | bioclinicalbert  |   0.7933 |   0.8404 |      0           |    0      |             1 |
-| auc      | gte-base        | pubmedbert       |   0.7933 |   0.84   |      4           |    0      |             1 |
-| auc      | gte-base        | sentence-biobert |   0.7933 |   0.8174 | 111231           |    0      |             1 |
-| auc      | gte-large       | e5-large         |   0.7515 |   0.7736 |  30415           |    0      |             1 |
-| auc      | gte-large       | bioclinicalbert  |   0.7515 |   0.8404 |      0           |    0      |             1 |
-| auc      | gte-large       | pubmedbert       |   0.7515 |   0.84   |      0           |    0      |             1 |
-| auc      | gte-large       | sentence-biobert |   0.7515 |   0.8174 |      0           |    0      |             1 |
-| auc      | e5-large        | bioclinicalbert  |   0.7736 |   0.8404 |      0           |    0      |             1 |
-| auc      | e5-large        | pubmedbert       |   0.7736 |   0.84   |      0           |    0      |             1 |
-| auc      | e5-large        | sentence-biobert |   0.7736 |   0.8174 |    105           |    0      |             1 |
-| auc      | bioclinicalbert | pubmedbert       |   0.8404 |   0.84   |      2.29839e+07 |    0      |             1 |
-| auc      | bioclinicalbert | sentence-biobert |   0.8404 |   0.8174 |    101           |    0      |             1 |
-| auc      | pubmedbert      | sentence-biobert |   0.84   |   0.8174 |    936           |    0      |             1 |
+| acc      | e5-base         | gte-base         |   0.7973 |   0.7899 |      8.15911e+06 |    0      |             1 |
+| acc      | e5-base         | gte-large        |   0.7973 |   0.7862 |      2.28269e+06 |    0      |             1 |
+| acc      | e5-base         | e5-large         |   0.7973 |   0.7961 |      1.87082e+07 |    0      |             1 |
+| acc      | e5-base         | bioclinicalbert  |   0.7973 |   0.796  |      1.95276e+07 |    0      |             1 |
+| acc      | e5-base         | pubmedbert       |   0.7973 |   0.812  | 448184           |    0      |             1 |
+| acc      | e5-base         | sentence-biobert |   0.7973 |   0.8207 |  72342.5         |    0      |             1 |
+| acc      | gte-base        | gte-large        |   0.7899 |   0.7862 |      1.5043e+07  |    0      |             1 |
+| acc      | gte-base        | e5-large         |   0.7899 |   0.7961 |      9.73655e+06 |    0      |             1 |
+| acc      | gte-base        | bioclinicalbert  |   0.7899 |   0.796  |      9.56855e+06 |    0      |             1 |
+| acc      | gte-base        | pubmedbert       |   0.7899 |   0.812  | 103577           |    0      |             1 |
+| acc      | gte-base        | sentence-biobert |   0.7899 |   0.8207 |  10621.5         |    0      |             1 |
+| acc      | gte-large       | e5-large         |   0.7862 |   0.7961 |      4.72049e+06 |    0      |             1 |
+| acc      | gte-large       | bioclinicalbert  |   0.7862 |   0.796  |      6.07183e+06 |    0      |             1 |
+| acc      | gte-large       | pubmedbert       |   0.7862 |   0.812  |  34902.5         |    0      |             1 |
+| acc      | gte-large       | sentence-biobert |   0.7862 |   0.8207 |    596           |    0      |             1 |
+| acc      | e5-large        | bioclinicalbert  |   0.7961 |   0.796  |      2.2567e+07  |    0.3714 |             0 |
+| acc      | e5-large        | pubmedbert       |   0.7961 |   0.812  | 502586           |    0      |             1 |
+| acc      | e5-large        | sentence-biobert |   0.7961 |   0.8207 |  68682           |    0      |             1 |
+| acc      | bioclinicalbert | pubmedbert       |   0.796  |   0.812  | 194745           |    0      |             1 |
+| acc      | bioclinicalbert | sentence-biobert |   0.796  |   0.8207 |  78984           |    0      |             1 |
+| acc      | pubmedbert      | sentence-biobert |   0.812  |   0.8207 |      5.21835e+06 |    0      |             1 |
+| f1       | e5-base         | gte-base         |   0.794  |   0.7883 |      1.22014e+07 |    0      |             1 |
+| f1       | e5-base         | gte-large        |   0.794  |   0.7838 |      3.51087e+06 |    0      |             1 |
+| f1       | e5-base         | e5-large         |   0.794  |   0.7923 |      1.92834e+07 |    0      |             1 |
+| f1       | e5-base         | bioclinicalbert  |   0.794  |   0.7932 |      2.26253e+07 |    0      |             1 |
+| f1       | e5-base         | pubmedbert       |   0.794  |   0.809  | 560477           |    0      |             1 |
+| f1       | e5-base         | sentence-biobert |   0.794  |   0.8195 |  43666           |    0      |             1 |
+| f1       | gte-base        | gte-large        |   0.7883 |   0.7838 |      1.46642e+07 |    0      |             1 |
+| f1       | gte-base        | e5-large         |   0.7883 |   0.7923 |      1.55362e+07 |    0      |             1 |
+| f1       | gte-base        | bioclinicalbert  |   0.7883 |   0.7932 |      1.33302e+07 |    0      |             1 |
+| f1       | gte-base        | pubmedbert       |   0.7883 |   0.809  | 223314           |    0      |             1 |
+| f1       | gte-base        | sentence-biobert |   0.7883 |   0.8195 |  11263           |    0      |             1 |
+| f1       | gte-large       | e5-large         |   0.7838 |   0.7923 |      7.22998e+06 |    0      |             1 |
+| f1       | gte-large       | bioclinicalbert  |   0.7838 |   0.7932 |      7.33143e+06 |    0      |             1 |
+| f1       | gte-large       | pubmedbert       |   0.7838 |   0.809  |  59609           |    0      |             1 |
+| f1       | gte-large       | sentence-biobert |   0.7838 |   0.8195 |    446           |    0      |             1 |
+| f1       | e5-large        | bioclinicalbert  |   0.7923 |   0.7932 |      2.27652e+07 |    0      |             1 |
+| f1       | e5-large        | pubmedbert       |   0.7923 |   0.809  | 471444           |    0      |             1 |
+| f1       | e5-large        | sentence-biobert |   0.7923 |   0.8195 |  29264           |    0      |             1 |
+| f1       | bioclinicalbert | pubmedbert       |   0.7932 |   0.809  | 311690           |    0      |             1 |
+| f1       | bioclinicalbert | sentence-biobert |   0.7932 |   0.8195 |  55653           |    0      |             1 |
+| f1       | pubmedbert      | sentence-biobert |   0.809  |   0.8195 |      3.98234e+06 |    0      |             1 |
+| auc      | e5-base         | gte-base         |   0.8659 |   0.8401 |      0           |    0      |             1 |
+| auc      | e5-base         | gte-large        |   0.8659 |   0.854  |  75059           |    0      |             1 |
+| auc      | e5-base         | e5-large         |   0.8659 |   0.8661 |      2.34551e+07 |    0      |             1 |
+| auc      | e5-base         | bioclinicalbert  |   0.8659 |   0.8795 |  95421           |    0      |             1 |
+| auc      | e5-base         | pubmedbert       |   0.8659 |   0.8855 |      0           |    0      |             1 |
+| auc      | e5-base         | sentence-biobert |   0.8659 |   0.8781 | 854842           |    0      |             1 |
+| auc      | gte-base        | gte-large        |   0.8401 |   0.854  | 111284           |    0      |             1 |
+| auc      | gte-base        | e5-large         |   0.8401 |   0.8661 |      0           |    0      |             1 |
+| auc      | gte-base        | bioclinicalbert  |   0.8401 |   0.8795 |      0           |    0      |             1 |
+| auc      | gte-base        | pubmedbert       |   0.8401 |   0.8855 |      0           |    0      |             1 |
+| auc      | gte-base        | sentence-biobert |   0.8401 |   0.8781 |      0           |    0      |             1 |
+| auc      | gte-large       | e5-large         |   0.854  |   0.8661 | 227610           |    0      |             1 |
+| auc      | gte-large       | bioclinicalbert  |   0.854  |   0.8795 |     96           |    0      |             1 |
+| auc      | gte-large       | pubmedbert       |   0.854  |   0.8855 |      0           |    0      |             1 |
+| auc      | gte-large       | sentence-biobert |   0.854  |   0.8781 |   1540           |    0      |             1 |
+| auc      | e5-large        | bioclinicalbert  |   0.8661 |   0.8795 | 236652           |    0      |             1 |
+| auc      | e5-large        | pubmedbert       |   0.8661 |   0.8855 |     32           |    0      |             1 |
+| auc      | e5-large        | sentence-biobert |   0.8661 |   0.8781 |      1.2929e+06  |    0      |             1 |
+| auc      | bioclinicalbert | pubmedbert       |   0.8795 |   0.8855 |      1.7008e+06  |    0      |             1 |
+| auc      | bioclinicalbert | sentence-biobert |   0.8795 |   0.8781 |      2.01517e+07 |    0      |             1 |
+| auc      | pubmedbert      | sentence-biobert |   0.8855 |   0.8781 |      3.89682e+06 |    0      |             1 |
 
 
 
@@ -227,69 +227,69 @@ The paired t-test compares paired bootstrap means for each model pair.
 
 | metric   | model_a         | model_b          |   mean_a |   mean_b |   statistic |   p_value |   significant |
 |:---------|:----------------|:-----------------|---------:|---------:|------------:|----------:|--------------:|
-| acc      | e5-base         | gte-base         |   0.7025 |   0.7432 |   -331.263  |    0      |             1 |
-| acc      | e5-base         | gte-large        |   0.7025 |   0.708  |    -44.0776 |    0      |             1 |
-| acc      | e5-base         | e5-large         |   0.7025 |   0.7433 |   -262.382  |    0      |             1 |
-| acc      | e5-base         | bioclinicalbert  |   0.7025 |   0.8002 |   -584.537  |    0      |             1 |
-| acc      | e5-base         | pubmedbert       |   0.7025 |   0.7961 |   -617.009  |    0      |             1 |
-| acc      | e5-base         | sentence-biobert |   0.7025 |   0.7731 |   -431.36   |    0      |             1 |
-| acc      | gte-base        | gte-large        |   0.7432 |   0.708  |    223.776  |    0      |             1 |
-| acc      | gte-base        | e5-large         |   0.7432 |   0.7433 |     -0.2149 |    0.8299 |             0 |
-| acc      | gte-base        | bioclinicalbert  |   0.7432 |   0.8002 |   -384.959  |    0      |             1 |
-| acc      | gte-base        | pubmedbert       |   0.7432 |   0.7961 |   -363.548  |    0      |             1 |
-| acc      | gte-base        | sentence-biobert |   0.7432 |   0.7731 |   -184.184  |    0      |             1 |
-| acc      | gte-large       | e5-large         |   0.708  |   0.7433 |   -214.262  |    0      |             1 |
-| acc      | gte-large       | bioclinicalbert  |   0.708  |   0.8002 |   -535.536  |    0      |             1 |
-| acc      | gte-large       | pubmedbert       |   0.708  |   0.7961 |   -597.324  |    0      |             1 |
-| acc      | gte-large       | sentence-biobert |   0.708  |   0.7731 |   -412.804  |    0      |             1 |
-| acc      | e5-large        | bioclinicalbert  |   0.7433 |   0.8002 |   -367.931  |    0      |             1 |
-| acc      | e5-large        | pubmedbert       |   0.7433 |   0.7961 |   -318.35   |    0      |             1 |
-| acc      | e5-large        | sentence-biobert |   0.7433 |   0.7731 |   -167.101  |    0      |             1 |
-| acc      | bioclinicalbert | pubmedbert       |   0.8002 |   0.7961 |     35.2162 |    0      |             1 |
-| acc      | bioclinicalbert | sentence-biobert |   0.8002 |   0.7731 |    198.898  |    0      |             1 |
-| acc      | pubmedbert      | sentence-biobert |   0.7961 |   0.7731 |    210.922  |    0      |             1 |
-| f1       | e5-base         | gte-base         |   0.6637 |   0.7236 |   -415.871  |    0      |             1 |
-| f1       | e5-base         | gte-large        |   0.6637 |   0.6837 |   -132.049  |    0      |             1 |
-| f1       | e5-base         | e5-large         |   0.6637 |   0.7354 |   -429.986  |    0      |             1 |
-| f1       | e5-base         | bioclinicalbert  |   0.6637 |   0.7917 |   -678.562  |    0      |             1 |
-| f1       | e5-base         | pubmedbert       |   0.6637 |   0.7849 |   -697.122  |    0      |             1 |
-| f1       | e5-base         | sentence-biobert |   0.6637 |   0.7599 |   -505.504  |    0      |             1 |
-| f1       | gte-base        | gte-large        |   0.7236 |   0.6837 |    219.578  |    0      |             1 |
-| f1       | gte-base        | e5-large         |   0.7236 |   0.7354 |    -77.1143 |    0      |             1 |
-| f1       | gte-base        | bioclinicalbert  |   0.7236 |   0.7917 |   -418.291  |    0      |             1 |
-| f1       | gte-base        | pubmedbert       |   0.7236 |   0.7849 |   -377.872  |    0      |             1 |
-| f1       | gte-base        | sentence-biobert |   0.7236 |   0.7599 |   -198.977  |    0      |             1 |
-| f1       | gte-large       | e5-large         |   0.6837 |   0.7354 |   -287.507  |    0      |             1 |
-| f1       | gte-large       | bioclinicalbert  |   0.6837 |   0.7917 |   -569.544  |    0      |             1 |
-| f1       | gte-large       | pubmedbert       |   0.6837 |   0.7849 |   -616.56   |    0      |             1 |
-| f1       | gte-large       | sentence-biobert |   0.6837 |   0.7599 |   -430.143  |    0      |             1 |
-| f1       | e5-large        | bioclinicalbert  |   0.7354 |   0.7917 |   -346.415  |    0      |             1 |
-| f1       | e5-large        | pubmedbert       |   0.7354 |   0.7849 |   -282.238  |    0      |             1 |
-| f1       | e5-large        | sentence-biobert |   0.7354 |   0.7599 |   -128.94   |    0      |             1 |
-| f1       | bioclinicalbert | pubmedbert       |   0.7917 |   0.7849 |     54.0938 |    0      |             1 |
-| f1       | bioclinicalbert | sentence-biobert |   0.7917 |   0.7599 |    214.406  |    0      |             1 |
-| f1       | pubmedbert      | sentence-biobert |   0.7849 |   0.7599 |    210.536  |    0      |             1 |
-| auc      | e5-base         | gte-base         |   0.7555 |   0.7933 |   -338.613  |    0      |             1 |
-| auc      | e5-base         | gte-large        |   0.7555 |   0.7515 |     40.1761 |    0      |             1 |
-| auc      | e5-base         | e5-large         |   0.7555 |   0.7736 |   -254.302  |    0      |             1 |
-| auc      | e5-base         | bioclinicalbert  |   0.7555 |   0.8404 |   -620.074  |    0      |             1 |
-| auc      | e5-base         | pubmedbert       |   0.7555 |   0.84   |   -647.575  |    0      |             1 |
-| auc      | e5-base         | sentence-biobert |   0.7555 |   0.8174 |   -429.293  |    0      |             1 |
-| auc      | gte-base        | gte-large        |   0.7933 |   0.7515 |    328.682  |    0      |             1 |
-| auc      | gte-base        | e5-large         |   0.7933 |   0.7736 |    174.981  |    0      |             1 |
-| auc      | gte-base        | bioclinicalbert  |   0.7933 |   0.8404 |   -431.684  |    0      |             1 |
-| auc      | gte-base        | pubmedbert       |   0.7933 |   0.84   |   -420.956  |    0      |             1 |
-| auc      | gte-base        | sentence-biobert |   0.7933 |   0.8174 |   -199.552  |    0      |             1 |
-| auc      | gte-large       | e5-large         |   0.7515 |   0.7736 |   -226.399  |    0      |             1 |
-| auc      | gte-large       | bioclinicalbert  |   0.7515 |   0.8404 |   -597.591  |    0      |             1 |
-| auc      | gte-large       | pubmedbert       |   0.7515 |   0.84   |   -662.013  |    0      |             1 |
-| auc      | gte-large       | sentence-biobert |   0.7515 |   0.8174 |   -447.375  |    0      |             1 |
-| auc      | e5-large        | bioclinicalbert  |   0.7736 |   0.8404 |   -530.456  |    0      |             1 |
-| auc      | e5-large        | pubmedbert       |   0.7736 |   0.84   |   -575.898  |    0      |             1 |
-| auc      | e5-large        | sentence-biobert |   0.7736 |   0.8174 |   -318.585  |    0      |             1 |
-| auc      | bioclinicalbert | pubmedbert       |   0.8404 |   0.84   |      7.1819 |    0      |             1 |
-| auc      | bioclinicalbert | sentence-biobert |   0.8404 |   0.8174 |    313.712  |    0      |             1 |
-| auc      | pubmedbert      | sentence-biobert |   0.84   |   0.8174 |    292.458  |    0      |             1 |
+| acc      | e5-base         | gte-base         |   0.7973 |   0.7899 |     64.1555 |    0      |             1 |
+| acc      | e5-base         | gte-large        |   0.7973 |   0.7862 |    114.38   |    0      |             1 |
+| acc      | e5-base         | e5-large         |   0.7973 |   0.7961 |     13.2088 |    0      |             1 |
+| acc      | e5-base         | bioclinicalbert  |   0.7973 |   0.796  |     11.9574 |    0      |             1 |
+| acc      | e5-base         | pubmedbert       |   0.7973 |   0.812  |   -162.689  |    0      |             1 |
+| acc      | e5-base         | sentence-biobert |   0.7973 |   0.8207 |   -206.234  |    0      |             1 |
+| acc      | gte-base        | gte-large        |   0.7899 |   0.7862 |     30.5199 |    0      |             1 |
+| acc      | gte-base        | e5-large         |   0.7899 |   0.7961 |    -55.5744 |    0      |             1 |
+| acc      | gte-base        | bioclinicalbert  |   0.7899 |   0.796  |    -56.8185 |    0      |             1 |
+| acc      | gte-base        | pubmedbert       |   0.7899 |   0.812  |   -202.038  |    0      |             1 |
+| acc      | gte-base        | sentence-biobert |   0.7899 |   0.8207 |   -254.699  |    0      |             1 |
+| acc      | gte-large       | e5-large         |   0.7862 |   0.7961 |    -88.4345 |    0      |             1 |
+| acc      | gte-large       | bioclinicalbert  |   0.7862 |   0.796  |    -78.2166 |    0      |             1 |
+| acc      | gte-large       | pubmedbert       |   0.7862 |   0.812  |   -222.602  |    0      |             1 |
+| acc      | gte-large       | sentence-biobert |   0.7862 |   0.8207 |   -294.352  |    0      |             1 |
+| acc      | e5-large        | bioclinicalbert  |   0.7961 |   0.796  |      1.2549 |    0.2095 |             0 |
+| acc      | e5-large        | pubmedbert       |   0.7961 |   0.812  |   -160.469  |    0      |             1 |
+| acc      | e5-large        | sentence-biobert |   0.7961 |   0.8207 |   -207.324  |    0      |             1 |
+| acc      | bioclinicalbert | pubmedbert       |   0.796  |   0.812  |   -184.38   |    0      |             1 |
+| acc      | bioclinicalbert | sentence-biobert |   0.796  |   0.8207 |   -205.015  |    0      |             1 |
+| acc      | pubmedbert      | sentence-biobert |   0.812  |   0.8207 |    -83.8481 |    0      |             1 |
+| f1       | e5-base         | gte-base         |   0.794  |   0.7883 |     48.6166 |    0      |             1 |
+| f1       | e5-base         | gte-large        |   0.794  |   0.7838 |    104.208  |    0      |             1 |
+| f1       | e5-base         | e5-large         |   0.794  |   0.7923 |     19.981  |    0      |             1 |
+| f1       | e5-base         | bioclinicalbert  |   0.794  |   0.7932 |      7.8635 |    0      |             1 |
+| f1       | e5-base         | pubmedbert       |   0.794  |   0.809  |   -160.492  |    0      |             1 |
+| f1       | e5-base         | sentence-biobert |   0.794  |   0.8195 |   -219.504  |    0      |             1 |
+| f1       | gte-base        | gte-large        |   0.7883 |   0.7838 |     37.9838 |    0      |             1 |
+| f1       | gte-base        | e5-large         |   0.7883 |   0.7923 |    -34.6681 |    0      |             1 |
+| f1       | gte-base        | bioclinicalbert  |   0.7883 |   0.7932 |    -44.1799 |    0      |             1 |
+| f1       | gte-base        | pubmedbert       |   0.7883 |   0.809  |   -185.972  |    0      |             1 |
+| f1       | gte-base        | sentence-biobert |   0.7883 |   0.8195 |   -254.202  |    0      |             1 |
+| f1       | gte-large       | e5-large         |   0.7838 |   0.7923 |    -74.9682 |    0      |             1 |
+| f1       | gte-large       | bioclinicalbert  |   0.7838 |   0.7932 |    -73.9796 |    0      |             1 |
+| f1       | gte-large       | pubmedbert       |   0.7838 |   0.809  |   -213.553  |    0      |             1 |
+| f1       | gte-large       | sentence-biobert |   0.7838 |   0.8195 |   -300.829  |    0      |             1 |
+| f1       | e5-large        | bioclinicalbert  |   0.7923 |   0.7932 |     -7.5429 |    0      |             1 |
+| f1       | e5-large        | pubmedbert       |   0.7923 |   0.809  |   -164.92   |    0      |             1 |
+| f1       | e5-large        | sentence-biobert |   0.7923 |   0.8195 |   -226.211  |    0      |             1 |
+| f1       | bioclinicalbert | pubmedbert       |   0.7932 |   0.809  |   -176.52   |    0      |             1 |
+| f1       | bioclinicalbert | sentence-biobert |   0.7932 |   0.8195 |   -214.82   |    0      |             1 |
+| f1       | pubmedbert      | sentence-biobert |   0.809  |   0.8195 |    -99.2305 |    0      |             1 |
+| auc      | e5-base         | gte-base         |   0.8659 |   0.8401 |    557.523  |    0      |             1 |
+| auc      | e5-base         | gte-large        |   0.8659 |   0.854  |    208.807  |    0      |             1 |
+| auc      | e5-base         | e5-large         |   0.8659 |   0.8661 |     -5.8347 |    0      |             1 |
+| auc      | e5-base         | bioclinicalbert  |   0.8659 |   0.8795 |   -202.952  |    0      |             1 |
+| auc      | e5-base         | pubmedbert       |   0.8659 |   0.8855 |   -369.983  |    0      |             1 |
+| auc      | e5-base         | sentence-biobert |   0.8659 |   0.8781 |   -150.001  |    0      |             1 |
+| auc      | gte-base        | gte-large        |   0.8401 |   0.854  |   -198.877  |    0      |             1 |
+| auc      | gte-base        | e5-large         |   0.8401 |   0.8661 |   -477.471  |    0      |             1 |
+| auc      | gte-base        | bioclinicalbert  |   0.8401 |   0.8795 |   -518.756  |    0      |             1 |
+| auc      | gte-base        | pubmedbert       |   0.8401 |   0.8855 |   -617.821  |    0      |             1 |
+| auc      | gte-base        | sentence-biobert |   0.8401 |   0.8781 |   -395.468  |    0      |             1 |
+| auc      | gte-large       | e5-large         |   0.854  |   0.8661 |   -184.751  |    0      |             1 |
+| auc      | gte-large       | bioclinicalbert  |   0.854  |   0.8795 |   -321.316  |    0      |             1 |
+| auc      | gte-large       | pubmedbert       |   0.854  |   0.8855 |   -459.447  |    0      |             1 |
+| auc      | gte-large       | sentence-biobert |   0.854  |   0.8781 |   -289.591  |    0      |             1 |
+| auc      | e5-large        | bioclinicalbert  |   0.8661 |   0.8795 |   -184.219  |    0      |             1 |
+| auc      | e5-large        | pubmedbert       |   0.8661 |   0.8855 |   -342.419  |    0      |             1 |
+| auc      | e5-large        | sentence-biobert |   0.8661 |   0.8781 |   -137.774  |    0      |             1 |
+| auc      | bioclinicalbert | pubmedbert       |   0.8795 |   0.8855 |   -128.587  |    0      |             1 |
+| auc      | bioclinicalbert | sentence-biobert |   0.8795 |   0.8781 |     17.3784 |    0      |             1 |
+| auc      | pubmedbert      | sentence-biobert |   0.8855 |   0.8781 |    100.212  |    0      |             1 |
 
 
 
@@ -299,27 +299,27 @@ The DeLong test compares AUC performance between model pairs on the same test la
 
 | model_a         | model_b          |   auc_a |   auc_b |   delta_auc |   z_statistic |   p_value |   significant |
 |:----------------|:-----------------|--------:|--------:|------------:|--------------:|----------:|--------------:|
-| e5-base         | gte-base         |  0.7554 |  0.7932 |     -0.0379 |        3.4454 |    0.0006 |             1 |
-| e5-base         | gte-large        |  0.7554 |  0.7513 |      0.0041 |       -0.4118 |    0.6805 |             0 |
-| e5-base         | e5-large         |  0.7554 |  0.7734 |     -0.018  |        2.5345 |    0.0113 |             1 |
-| e5-base         | bioclinicalbert  |  0.7554 |  0.8404 |     -0.085  |        6.2585 |    0      |             1 |
-| e5-base         | pubmedbert       |  0.7554 |  0.8399 |     -0.0846 |        6.5029 |    0      |             1 |
-| e5-base         | sentence-biobert |  0.7554 |  0.8173 |     -0.0619 |        4.3158 |    0      |             1 |
-| gte-base        | gte-large        |  0.7932 |  0.7513 |      0.042  |       -3.3101 |    0.0009 |             1 |
-| gte-base        | e5-large         |  0.7932 |  0.7734 |      0.0199 |       -1.7774 |    0.0755 |             0 |
-| gte-base        | bioclinicalbert  |  0.7932 |  0.8404 |     -0.0472 |        4.367  |    0      |             1 |
-| gte-base        | pubmedbert       |  0.7932 |  0.8399 |     -0.0467 |        4.2344 |    0      |             1 |
-| gte-base        | sentence-biobert |  0.7932 |  0.8173 |     -0.0241 |        1.9984 |    0.0457 |             1 |
-| gte-large       | e5-large         |  0.7513 |  0.7734 |     -0.0221 |        2.2705 |    0.0232 |             1 |
-| gte-large       | bioclinicalbert  |  0.7513 |  0.8404 |     -0.0891 |        5.9977 |    0      |             1 |
-| gte-large       | pubmedbert       |  0.7513 |  0.8399 |     -0.0887 |        6.6164 |    0      |             1 |
-| gte-large       | sentence-biobert |  0.7513 |  0.8173 |     -0.066  |        4.4944 |    0      |             1 |
-| e5-large        | bioclinicalbert  |  0.7734 |  0.8404 |     -0.067  |        5.3666 |    0      |             1 |
-| e5-large        | pubmedbert       |  0.7734 |  0.8399 |     -0.0666 |        5.8055 |    0      |             1 |
-| e5-large        | sentence-biobert |  0.7734 |  0.8173 |     -0.0439 |        3.2056 |    0.0013 |             1 |
-| bioclinicalbert | pubmedbert       |  0.8404 |  0.8399 |      0.0005 |       -0.0758 |    0.9395 |             0 |
-| bioclinicalbert | sentence-biobert |  0.8404 |  0.8173 |      0.0231 |       -3.1526 |    0.0016 |             1 |
-| pubmedbert      | sentence-biobert |  0.8399 |  0.8173 |      0.0227 |       -2.9796 |    0.0029 |             1 |
+| e5-base         | gte-base         |  0.8659 |  0.8401 |      0.0258 |       -5.5437 |    0      |             1 |
+| e5-base         | gte-large        |  0.8659 |  0.8539 |      0.0119 |       -2.1017 |    0.0356 |             1 |
+| e5-base         | e5-large         |  0.8659 |  0.866  |     -0.0001 |        0.0494 |    0.9606 |             0 |
+| e5-base         | bioclinicalbert  |  0.8659 |  0.8794 |     -0.0136 |        2.0462 |    0.0407 |             1 |
+| e5-base         | pubmedbert       |  0.8659 |  0.8854 |     -0.0195 |        3.715  |    0.0002 |             1 |
+| e5-base         | sentence-biobert |  0.8659 |  0.878  |     -0.0121 |        1.493  |    0.1354 |             0 |
+| gte-base        | gte-large        |  0.8401 |  0.8539 |     -0.0138 |        1.9805 |    0.0476 |             1 |
+| gte-base        | e5-large         |  0.8401 |  0.866  |     -0.0259 |        4.7464 |    0      |             1 |
+| gte-base        | bioclinicalbert  |  0.8401 |  0.8794 |     -0.0393 |        5.154  |    0      |             1 |
+| gte-base        | pubmedbert       |  0.8401 |  0.8854 |     -0.0453 |        6.1497 |    0      |             1 |
+| gte-base        | sentence-biobert |  0.8401 |  0.878  |     -0.0379 |        3.946  |    0.0001 |             1 |
+| gte-large       | e5-large         |  0.8539 |  0.866  |     -0.0121 |        1.8605 |    0.0628 |             0 |
+| gte-large       | bioclinicalbert  |  0.8539 |  0.8794 |     -0.0255 |        3.2399 |    0.0012 |             1 |
+| gte-large       | pubmedbert       |  0.8539 |  0.8854 |     -0.0315 |        4.6447 |    0      |             1 |
+| gte-large       | sentence-biobert |  0.8539 |  0.878  |     -0.0241 |        2.9178 |    0.0035 |             1 |
+| e5-large        | bioclinicalbert  |  0.866  |  0.8794 |     -0.0134 |        1.8733 |    0.061  |             0 |
+| e5-large        | pubmedbert       |  0.866  |  0.8854 |     -0.0194 |        3.4833 |    0.0005 |             1 |
+| e5-large        | sentence-biobert |  0.866  |  0.878  |     -0.012  |        1.3858 |    0.1658 |             0 |
+| bioclinicalbert | pubmedbert       |  0.8794 |  0.8854 |     -0.006  |        1.2996 |    0.1937 |             0 |
+| bioclinicalbert | sentence-biobert |  0.8794 |  0.878  |      0.0015 |       -0.1872 |    0.8515 |             0 |
+| pubmedbert      | sentence-biobert |  0.8854 |  0.878  |      0.0074 |       -1.0205 |    0.3075 |             0 |
 
 
 

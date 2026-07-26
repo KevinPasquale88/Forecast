@@ -76,6 +76,7 @@ _configure_plot_style()
 
 def save_figure(fig, path_no_ext):
     fig.savefig(f"{path_no_ext}.png", dpi=300, bbox_inches="tight", facecolor="white")
+    fig.savefig(f"{path_no_ext}.pdf", bbox_inches="tight", facecolor="white")
 
 
 def get_model_palette(model_names):

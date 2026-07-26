@@ -1,11 +1,9 @@
 import numpy as np
 import pandas as pd
-from imblearn.pipeline import Pipeline as ImbPipeline
-from sklearn.impute import SimpleImputer
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler, OneHotEncoder
 from sklearn.compose import ColumnTransformer
-from imblearn.over_sampling import SMOTE
+from imblearn.over_sampling import SMOTENC
 
 
 from function import plot_data_heatmap, columns, num_cols, cat_cols, plot_umap
@@ -26,21 +24,30 @@ def preprocessing_data():
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
 
-    # create and fit the full pipeline
-    clean_pipeline = clean_data(X_train, y_train)
+    # impute missing values in the raw feature space (required before SMOTE, and so every
+    # record stays interpretable for the text description used in the embedding phase)
+    X_train_imputed = impute_raw(X_train)
 
-    X_train_emb_df = data_processed(X_train, y_train, clean_pipeline)
+    # balance the target class on the raw/interpretable features with SMOTENC, so synthetic
+    # records keep realistic values (real scale numerics + valid categorical codes) and can be
+    # converted to text just like real records — plain SMOTE only works in encoded vector space
+    # and its synthetic rows can't be mapped back to a clinical record description.
+    X_train_bal, y_train_bal = balance_classes(X_train_imputed, y_train)
+
+    # fit the encoder (scaling + one-hot) on the balanced raw data, used for UMAP/heatmap only
+    encoder = build_encoder(X_train_bal, y_train_bal)
+    X_train_emb_df = data_processed(X_train_bal, y_train_bal, encoder)
     plot_umap(X_train_emb_df.drop("target", axis=1), X_train_emb_df["target"], "Preprocessed Data + Embeddings")
     print(X_train_emb_df.head())
     save_data_processed(X_train_emb_df)
     plot_data_heatmap(X_train_emb_df)
 
-    # Raw (pre-encoding) clinical features, row-order aligned with the embeddings generated from X_train,
-    # so predictions can be traced back to the original record for error analysis.
-    X_train.reset_index(drop=True).to_csv("datas/preprocessing/X_train_raw.csv", index=False)
+    # Raw (pre-encoding) clinical features, row-order aligned with the embeddings generated from
+    # X_train_bal, so predictions can be traced back to the original/synthetic record for error analysis.
+    X_train_bal.reset_index(drop=True).to_csv("datas/preprocessing/X_train_raw.csv", index=False)
 
-    return X_train, y_train
-    
+    return X_train_bal, y_train_bal
+
 #load data from files and concatenate into one dataframe
 def load_heart_disease():
     files = [
@@ -52,16 +59,38 @@ def load_heart_disease():
     dfs = [pd.read_csv(f, header=None, na_values="?") for f in files]
     df = pd.concat(dfs, ignore_index=True)
     df.columns = columns
+
+    # In some source files (notably Switzerland and Hungary) missing cholesterol/resting
+    # blood pressure readings are encoded as 0 rather than "?". 0 mg/dl or 0 mm Hg is not a
+    # physiologically valid value for either, so treat it as missing like the rest of the pipeline.
+    df["chol"] = df["chol"].replace(0, np.nan)
+    df["trestbps"] = df["trestbps"].replace(0, np.nan)
+
     return df
 
-#preparation functions: clean data, transform data, save preprocessed data
-def clean_data(X, y):
-    numeric_transformer = ImbPipeline(steps=[('imputer', SimpleImputer(strategy='median')),('scaler', StandardScaler())])
+#preparation functions: impute, balance, encode data, save preprocessed data
 
-    categorical_transformer = ImbPipeline(steps=[
-        ('imputer', SimpleImputer(strategy='most_frequent')),
-        ('onehot', OneHotEncoder(handle_unknown='ignore'))
-    ])
+def impute_raw(X):
+    X = X.copy()
+    for col in num_cols:
+        X[col] = X[col].fillna(X[col].median())
+    for col in cat_cols:
+        X[col] = X[col].fillna(X[col].mode().iloc[0])
+    return X
+
+def balance_classes(X, y):
+    # SMOTENC handles the mix of numeric and categorical columns directly on the raw
+    # feature space: numeric features are interpolated, categorical ones are set to the
+    # majority value among nearest neighbors, so every synthetic row is still a valid
+    # (interpretable) clinical record.
+    cat_idx = [X.columns.get_loc(c) for c in cat_cols]
+    smote_nc = SMOTENC(categorical_features=cat_idx, random_state=42)
+    X_res, y_res = smote_nc.fit_resample(X, y)
+    return X_res, y_res
+
+def build_encoder(X, y):
+    numeric_transformer = StandardScaler()
+    categorical_transformer = OneHotEncoder(handle_unknown='ignore')
 
     preprocessor = ColumnTransformer(
         transformers=[
@@ -70,26 +99,17 @@ def clean_data(X, y):
         ]
     )
 
-    full_pipeline = ImbPipeline(steps=[
-        ('preprocessor', preprocessor),
-        ('smote', SMOTE(random_state=42))
-    ])
+    return preprocessor.fit(X, y)
 
-    full_pipeline = full_pipeline.fit(X, y)
-    return full_pipeline
-
-def data_processed(X_train, y_train, pipeline):
-    preprocessor = pipeline.named_steps['preprocessor']
+def data_processed(X_train, y_train, preprocessor):
     X_train_emb = preprocessor.transform(X_train)
     num_features = num_cols
     cat_features = list(
-        preprocessor.named_transformers_['cat']
-        .named_steps['onehot']
-        .get_feature_names_out(cat_cols)
+        preprocessor.named_transformers_['cat'].get_feature_names_out(cat_cols)
     )
     feature_names = num_features + cat_features
     X_train_emb_df = pd.DataFrame(X_train_emb, columns=feature_names)
-    X_train_emb_df['target'] = y_train.values
+    X_train_emb_df['target'] = np.asarray(y_train)
     return X_train_emb_df
 
 def save_data_processed(X_train_emb_df):
