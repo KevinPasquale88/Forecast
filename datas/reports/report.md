@@ -1,6 +1,6 @@
 # 📊 Encoder Evaluation Report
 
-**Generated:** 2026-07-26 10:21
+**Generated:** 2026-07-26 11:15
 
 ---
 
@@ -24,7 +24,7 @@ Verify the robustness and reliability of the pipeline based on embeddings genera
 
 | model            |   acc_mean |   acc_ci_low |   acc_ci_high |   acc_std |   f1_mean |   f1_ci_low |   f1_ci_high |    f1_std |   auc_mean |   auc_ci_low |   auc_ci_high |   auc_std |
 |:-----------------|-----------:|-------------:|--------------:|----------:|----------:|------------:|-------------:|----------:|-----------:|-------------:|--------------:|----------:|
-| e5-base          |   0.797279 |     0.769042 |      0.824324 | 0.0140129 |  0.794047 |    0.766033 |     0.821579 | 0.01423   |   0.865938 |     0.84062  |      0.889971 | 0.0125261 |
+| e5-base          |   0.777663 |     0.748157 |      0.805897 | 0.0145697 |  0.771566 |    0.741669 |     0.800134 | 0.0149022 |   0.848923 |     0.821509 |      0.87462  | 0.0134531 |
 | gte-base         |   0.789869 |     0.761671 |      0.816953 | 0.0142793 |  0.788329 |    0.760047 |     0.816032 | 0.0143745 |   0.840111 |     0.812213 |      0.866691 | 0.0138749 |
 | gte-large        |   0.786247 |     0.757985 |      0.814496 | 0.014411  |  0.783755 |    0.754944 |     0.812381 | 0.0145694 |   0.853989 |     0.827157 |      0.879692 | 0.0133106 |
 | e5-large         |   0.796147 |     0.767813 |      0.824324 | 0.0141214 |  0.792303 |    0.763573 |     0.820425 | 0.01437   |   0.866104 |     0.840607 |      0.890036 | 0.0126045 |
@@ -108,7 +108,7 @@ Misclassified cases (false positives / false negatives) are traced back to the o
 
 | model            |   n_errors |   n_fp |   n_fn |   fp_rate |   fn_rate |
 |:-----------------|-----------:|-------:|-------:|----------:|----------:|
-| e5-base          |        165 |    132 |     33 |  0.324324 | 0.0810811 |
+| e5-base          |        181 |    156 |     25 |  0.383292 | 0.0614251 |
 | gte-base         |        171 |    118 |     53 |  0.289926 | 0.130221  |
 | gte-large        |        174 |    129 |     45 |  0.316953 | 0.110565  |
 | e5-large         |        166 |    137 |     29 |  0.336609 | 0.0712531 |
@@ -128,18 +128,18 @@ Standardized mean difference per clinical feature, pooled across all models (pos
 
 ### Hardest cases (most frequently misclassified across models)
 
-|   age |   sex |   cp |   trestbps |   chol |   fbs |   restecg |   thalach |   exang |   oldpeak |   slope |   ca |   thal |   n_models_wrong |   n_models_evaluated |
-|------:|------:|-----:|-----------:|-------:|------:|----------:|----------:|--------:|----------:|--------:|-----:|-------:|-----------------:|---------------------:|
-|    35 |     1 |    2 |        110 |    257 |     0 |         0 |       140 |       0 |       0   |       2 |    0 |      3 |                7 |                    7 |
-|    41 |     1 |    4 |        150 |    171 |     0 |         0 |       128 |       1 |       1.5 |       2 |    0 |      3 |                7 |                    7 |
-|    60 |     1 |    4 |        120 |    239 |     0 |         0 |       133 |       1 |       2   |       1 |    0 |      7 |                7 |                    7 |
-|    57 |     0 |    4 |        180 |    347 |     0 |         1 |       126 |       1 |       0.8 |       2 |    0 |      3 |                7 |                    7 |
-|    59 |     1 |    4 |        140 |    239 |     0 |         0 |       140 |       0 |       0   |       2 |    0 |      3 |                7 |                    7 |
-|    60 |     1 |    4 |        130 |    195 |     0 |         0 |       140 |       0 |       0.5 |       2 |    0 |      3 |                7 |                    7 |
-|    57 |     1 |    4 |        110 |    201 |     0 |         0 |       126 |       1 |       1.5 |       2 |    0 |      6 |                7 |                    7 |
-|    39 |     1 |    4 |        130 |    307 |     0 |         0 |       140 |       0 |       0   |       2 |    0 |      3 |                7 |                    7 |
-|    65 |     1 |    4 |        155 |    239 |     0 |         0 |       154 |       0 |       1   |       1 |    0 |      3 |                7 |                    7 |
-|    75 |     1 |    4 |        160 |    310 |     1 |         0 |       112 |       1 |       2   |       3 |    0 |      7 |                7 |                    7 |
+|     age |   sex |   cp |   trestbps |    chol |   fbs |   restecg |   thalach |   exang |   oldpeak |   slope |   ca |   thal |   n_models_wrong |   n_models_evaluated |
+|--------:|------:|-----:|-----------:|--------:|------:|----------:|----------:|--------:|----------:|--------:|-----:|-------:|-----------------:|---------------------:|
+| 55.2321 |     1 |    4 |    149.316 | 232.137 |     0 |         0 |   162.947 |       0 | 1.69583   |       1 |    0 |      3 |                7 |                    7 |
+| 54.0393 |     1 |    4 |    110     | 207.908 |     0 |         0 |   141.79  |       0 | 0.0196696 |       2 |    0 |      3 |                7 |                    7 |
+| 43      |     1 |    4 |    115     | 303     |     0 |         0 |   181     |       0 | 1.2       |       2 |    0 |      3 |                7 |                    7 |
+| 48      |     1 |    4 |    130     | 272     |     0 |         1 |   140     |       0 | 0.5       |       2 |    0 |      3 |                7 |                    7 |
+| 41      |     1 |    4 |    150     | 171     |     0 |         0 |   128     |       1 | 1.5       |       2 |    0 |      3 |                7 |                    7 |
+| 68      |     1 |    1 |    130     | 181     |     1 |         1 |   140     |       0 | 0.5       |       2 |    0 |      3 |                7 |                    7 |
+| 61      |     1 |    3 |    150     | 243     |     1 |         0 |   137     |       1 | 1         |       2 |    0 |      3 |                7 |                    7 |
+| 55      |     1 |    4 |    140     | 229     |     0 |         0 |   110     |       1 | 0.5       |       2 |    0 |      3 |                7 |                    7 |
+| 59      |     1 |    4 |    140     | 239     |     0 |         0 |   140     |       0 | 0         |       2 |    0 |      3 |                7 |                    7 |
+| 51      |     1 |    4 |    140     | 261     |     0 |         2 |   186     |       1 | 0         |       1 |    0 |      3 |                7 |                    7 |
 
 
 
@@ -155,12 +155,12 @@ The Wilcoxon test compares paired bootstrap distributions for each model pair.
 
 | metric   | model_a         | model_b          |   mean_a |   mean_b |        statistic |   p_value |   significant |
 |:---------|:----------------|:-----------------|---------:|---------:|-----------------:|----------:|--------------:|
-| acc      | e5-base         | gte-base         |   0.7973 |   0.7899 |      8.15911e+06 |    0      |             1 |
-| acc      | e5-base         | gte-large        |   0.7973 |   0.7862 |      2.28269e+06 |    0      |             1 |
-| acc      | e5-base         | e5-large         |   0.7973 |   0.7961 |      1.87082e+07 |    0      |             1 |
-| acc      | e5-base         | bioclinicalbert  |   0.7973 |   0.796  |      1.95276e+07 |    0      |             1 |
-| acc      | e5-base         | pubmedbert       |   0.7973 |   0.812  | 448184           |    0      |             1 |
-| acc      | e5-base         | sentence-biobert |   0.7973 |   0.8207 |  72342.5         |    0      |             1 |
+| acc      | e5-base         | gte-base         |   0.7777 |   0.7899 |      2.64551e+06 |    0      |             1 |
+| acc      | e5-base         | gte-large        |   0.7777 |   0.7862 |      5.54379e+06 |    0      |             1 |
+| acc      | e5-base         | e5-large         |   0.7777 |   0.7961 | 139527           |    0      |             1 |
+| acc      | e5-base         | bioclinicalbert  |   0.7777 |   0.796  | 535070           |    0      |             1 |
+| acc      | e5-base         | pubmedbert       |   0.7777 |   0.812  |    245.5         |    0      |             1 |
+| acc      | e5-base         | sentence-biobert |   0.7777 |   0.8207 |     12.5         |    0      |             1 |
 | acc      | gte-base        | gte-large        |   0.7899 |   0.7862 |      1.5043e+07  |    0      |             1 |
 | acc      | gte-base        | e5-large         |   0.7899 |   0.7961 |      9.73655e+06 |    0      |             1 |
 | acc      | gte-base        | bioclinicalbert  |   0.7899 |   0.796  |      9.56855e+06 |    0      |             1 |
@@ -176,12 +176,12 @@ The Wilcoxon test compares paired bootstrap distributions for each model pair.
 | acc      | bioclinicalbert | pubmedbert       |   0.796  |   0.812  | 194745           |    0      |             1 |
 | acc      | bioclinicalbert | sentence-biobert |   0.796  |   0.8207 |  78984           |    0      |             1 |
 | acc      | pubmedbert      | sentence-biobert |   0.812  |   0.8207 |      5.21835e+06 |    0      |             1 |
-| f1       | e5-base         | gte-base         |   0.794  |   0.7883 |      1.22014e+07 |    0      |             1 |
-| f1       | e5-base         | gte-large        |   0.794  |   0.7838 |      3.51087e+06 |    0      |             1 |
-| f1       | e5-base         | e5-large         |   0.794  |   0.7923 |      1.92834e+07 |    0      |             1 |
-| f1       | e5-base         | bioclinicalbert  |   0.794  |   0.7932 |      2.26253e+07 |    0      |             1 |
-| f1       | e5-base         | pubmedbert       |   0.794  |   0.809  | 560477           |    0      |             1 |
-| f1       | e5-base         | sentence-biobert |   0.794  |   0.8195 |  43666           |    0      |             1 |
+| f1       | e5-base         | gte-base         |   0.7716 |   0.7883 | 864240           |    0      |             1 |
+| f1       | e5-base         | gte-large        |   0.7716 |   0.7838 |      2.74909e+06 |    0      |             1 |
+| f1       | e5-base         | e5-large         |   0.7716 |   0.7923 |  80756           |    0      |             1 |
+| f1       | e5-base         | bioclinicalbert  |   0.7716 |   0.7932 | 239357           |    0      |             1 |
+| f1       | e5-base         | pubmedbert       |   0.7716 |   0.809  |    107           |    0      |             1 |
+| f1       | e5-base         | sentence-biobert |   0.7716 |   0.8195 |      3           |    0      |             1 |
 | f1       | gte-base        | gte-large        |   0.7883 |   0.7838 |      1.46642e+07 |    0      |             1 |
 | f1       | gte-base        | e5-large         |   0.7883 |   0.7923 |      1.55362e+07 |    0      |             1 |
 | f1       | gte-base        | bioclinicalbert  |   0.7883 |   0.7932 |      1.33302e+07 |    0      |             1 |
@@ -197,12 +197,12 @@ The Wilcoxon test compares paired bootstrap distributions for each model pair.
 | f1       | bioclinicalbert | pubmedbert       |   0.7932 |   0.809  | 311690           |    0      |             1 |
 | f1       | bioclinicalbert | sentence-biobert |   0.7932 |   0.8195 |  55653           |    0      |             1 |
 | f1       | pubmedbert      | sentence-biobert |   0.809  |   0.8195 |      3.98234e+06 |    0      |             1 |
-| auc      | e5-base         | gte-base         |   0.8659 |   0.8401 |      0           |    0      |             1 |
-| auc      | e5-base         | gte-large        |   0.8659 |   0.854  |  75059           |    0      |             1 |
-| auc      | e5-base         | e5-large         |   0.8659 |   0.8661 |      2.34551e+07 |    0      |             1 |
-| auc      | e5-base         | bioclinicalbert  |   0.8659 |   0.8795 |  95421           |    0      |             1 |
-| auc      | e5-base         | pubmedbert       |   0.8659 |   0.8855 |      0           |    0      |             1 |
-| auc      | e5-base         | sentence-biobert |   0.8659 |   0.8781 | 854842           |    0      |             1 |
+| auc      | e5-base         | gte-base         |   0.8489 |   0.8401 | 205972           |    0      |             1 |
+| auc      | e5-base         | gte-large        |   0.8489 |   0.854  |      5.63212e+06 |    0      |             1 |
+| auc      | e5-base         | e5-large         |   0.8489 |   0.8661 |      2           |    0      |             1 |
+| auc      | e5-base         | bioclinicalbert  |   0.8489 |   0.8795 |      1           |    0      |             1 |
+| auc      | e5-base         | pubmedbert       |   0.8489 |   0.8855 |      0           |    0      |             1 |
+| auc      | e5-base         | sentence-biobert |   0.8489 |   0.8781 |     28           |    0      |             1 |
 | auc      | gte-base        | gte-large        |   0.8401 |   0.854  | 111284           |    0      |             1 |
 | auc      | gte-base        | e5-large         |   0.8401 |   0.8661 |      0           |    0      |             1 |
 | auc      | gte-base        | bioclinicalbert  |   0.8401 |   0.8795 |      0           |    0      |             1 |
@@ -227,12 +227,12 @@ The paired t-test compares paired bootstrap means for each model pair.
 
 | metric   | model_a         | model_b          |   mean_a |   mean_b |   statistic |   p_value |   significant |
 |:---------|:----------------|:-----------------|---------:|---------:|------------:|----------:|--------------:|
-| acc      | e5-base         | gte-base         |   0.7973 |   0.7899 |     64.1555 |    0      |             1 |
-| acc      | e5-base         | gte-large        |   0.7973 |   0.7862 |    114.38   |    0      |             1 |
-| acc      | e5-base         | e5-large         |   0.7973 |   0.7961 |     13.2088 |    0      |             1 |
-| acc      | e5-base         | bioclinicalbert  |   0.7973 |   0.796  |     11.9574 |    0      |             1 |
-| acc      | e5-base         | pubmedbert       |   0.7973 |   0.812  |   -162.689  |    0      |             1 |
-| acc      | e5-base         | sentence-biobert |   0.7973 |   0.8207 |   -206.234  |    0      |             1 |
+| acc      | e5-base         | gte-base         |   0.7777 |   0.7899 |   -110.47   |    0      |             1 |
+| acc      | e5-base         | gte-large        |   0.7777 |   0.7862 |    -81.9303 |    0      |             1 |
+| acc      | e5-base         | e5-large         |   0.7777 |   0.7961 |   -192      |    0      |             1 |
+| acc      | e5-base         | bioclinicalbert  |   0.7777 |   0.796  |   -160.693  |    0      |             1 |
+| acc      | e5-base         | pubmedbert       |   0.7777 |   0.812  |   -321.019  |    0      |             1 |
+| acc      | e5-base         | sentence-biobert |   0.7777 |   0.8207 |   -354.297  |    0      |             1 |
 | acc      | gte-base        | gte-large        |   0.7899 |   0.7862 |     30.5199 |    0      |             1 |
 | acc      | gte-base        | e5-large         |   0.7899 |   0.7961 |    -55.5744 |    0      |             1 |
 | acc      | gte-base        | bioclinicalbert  |   0.7899 |   0.796  |    -56.8185 |    0      |             1 |
@@ -248,12 +248,12 @@ The paired t-test compares paired bootstrap means for each model pair.
 | acc      | bioclinicalbert | pubmedbert       |   0.796  |   0.812  |   -184.38   |    0      |             1 |
 | acc      | bioclinicalbert | sentence-biobert |   0.796  |   0.8207 |   -205.015  |    0      |             1 |
 | acc      | pubmedbert      | sentence-biobert |   0.812  |   0.8207 |    -83.8481 |    0      |             1 |
-| f1       | e5-base         | gte-base         |   0.794  |   0.7883 |     48.6166 |    0      |             1 |
-| f1       | e5-base         | gte-large        |   0.794  |   0.7838 |    104.208  |    0      |             1 |
-| f1       | e5-base         | e5-large         |   0.794  |   0.7923 |     19.981  |    0      |             1 |
-| f1       | e5-base         | bioclinicalbert  |   0.794  |   0.7932 |      7.8635 |    0      |             1 |
-| f1       | e5-base         | pubmedbert       |   0.794  |   0.809  |   -160.492  |    0      |             1 |
-| f1       | e5-base         | sentence-biobert |   0.794  |   0.8195 |   -219.504  |    0      |             1 |
+| f1       | e5-base         | gte-base         |   0.7716 |   0.7883 |   -148.891  |    0      |             1 |
+| f1       | e5-base         | gte-large        |   0.7716 |   0.7838 |   -113.415  |    0      |             1 |
+| f1       | e5-base         | e5-large         |   0.7716 |   0.7923 |   -206.652  |    0      |             1 |
+| f1       | e5-base         | bioclinicalbert  |   0.7716 |   0.7932 |   -183.941  |    0      |             1 |
+| f1       | e5-base         | pubmedbert       |   0.7716 |   0.809  |   -336.413  |    0      |             1 |
+| f1       | e5-base         | sentence-biobert |   0.7716 |   0.8195 |   -384.346  |    0      |             1 |
 | f1       | gte-base        | gte-large        |   0.7883 |   0.7838 |     37.9838 |    0      |             1 |
 | f1       | gte-base        | e5-large         |   0.7883 |   0.7923 |    -34.6681 |    0      |             1 |
 | f1       | gte-base        | bioclinicalbert  |   0.7883 |   0.7932 |    -44.1799 |    0      |             1 |
@@ -269,12 +269,12 @@ The paired t-test compares paired bootstrap means for each model pair.
 | f1       | bioclinicalbert | pubmedbert       |   0.7932 |   0.809  |   -176.52   |    0      |             1 |
 | f1       | bioclinicalbert | sentence-biobert |   0.7932 |   0.8195 |   -214.82   |    0      |             1 |
 | f1       | pubmedbert      | sentence-biobert |   0.809  |   0.8195 |    -99.2305 |    0      |             1 |
-| auc      | e5-base         | gte-base         |   0.8659 |   0.8401 |    557.523  |    0      |             1 |
-| auc      | e5-base         | gte-large        |   0.8659 |   0.854  |    208.807  |    0      |             1 |
-| auc      | e5-base         | e5-large         |   0.8659 |   0.8661 |     -5.8347 |    0      |             1 |
-| auc      | e5-base         | bioclinicalbert  |   0.8659 |   0.8795 |   -202.952  |    0      |             1 |
-| auc      | e5-base         | pubmedbert       |   0.8659 |   0.8855 |   -369.983  |    0      |             1 |
-| auc      | e5-base         | sentence-biobert |   0.8659 |   0.8781 |   -150.001  |    0      |             1 |
+| auc      | e5-base         | gte-base         |   0.8489 |   0.8401 |    184.931  |    0      |             1 |
+| auc      | e5-base         | gte-large        |   0.8489 |   0.854  |    -85.9693 |    0      |             1 |
+| auc      | e5-base         | e5-large         |   0.8489 |   0.8661 |   -366.744  |    0      |             1 |
+| auc      | e5-base         | bioclinicalbert  |   0.8489 |   0.8795 |   -375.126  |    0      |             1 |
+| auc      | e5-base         | pubmedbert       |   0.8489 |   0.8855 |   -510.36   |    0      |             1 |
+| auc      | e5-base         | sentence-biobert |   0.8489 |   0.8781 |   -333.729  |    0      |             1 |
 | auc      | gte-base        | gte-large        |   0.8401 |   0.854  |   -198.877  |    0      |             1 |
 | auc      | gte-base        | e5-large         |   0.8401 |   0.8661 |   -477.471  |    0      |             1 |
 | auc      | gte-base        | bioclinicalbert  |   0.8401 |   0.8795 |   -518.756  |    0      |             1 |
@@ -299,12 +299,12 @@ The DeLong test compares AUC performance between model pairs on the same test la
 
 | model_a         | model_b          |   auc_a |   auc_b |   delta_auc |   z_statistic |   p_value |   significant |
 |:----------------|:-----------------|--------:|--------:|------------:|--------------:|----------:|--------------:|
-| e5-base         | gte-base         |  0.8659 |  0.8401 |      0.0258 |       -5.5437 |    0      |             1 |
-| e5-base         | gte-large        |  0.8659 |  0.8539 |      0.0119 |       -2.1017 |    0.0356 |             1 |
-| e5-base         | e5-large         |  0.8659 |  0.866  |     -0.0001 |        0.0494 |    0.9606 |             0 |
-| e5-base         | bioclinicalbert  |  0.8659 |  0.8794 |     -0.0136 |        2.0462 |    0.0407 |             1 |
-| e5-base         | pubmedbert       |  0.8659 |  0.8854 |     -0.0195 |        3.715  |    0.0002 |             1 |
-| e5-base         | sentence-biobert |  0.8659 |  0.878  |     -0.0121 |        1.493  |    0.1354 |             0 |
+| e5-base         | gte-base         |  0.8488 |  0.8401 |      0.0087 |       -1.8317 |    0.067  |             0 |
+| e5-base         | gte-large        |  0.8488 |  0.8539 |     -0.0051 |        0.8627 |    0.3883 |             0 |
+| e5-base         | e5-large         |  0.8488 |  0.866  |     -0.0172 |        3.6518 |    0.0003 |             1 |
+| e5-base         | bioclinicalbert  |  0.8488 |  0.8794 |     -0.0306 |        3.7577 |    0.0002 |             1 |
+| e5-base         | pubmedbert       |  0.8488 |  0.8854 |     -0.0366 |        5.1072 |    0      |             1 |
+| e5-base         | sentence-biobert |  0.8488 |  0.878  |     -0.0291 |        3.3331 |    0.0009 |             1 |
 | gte-base        | gte-large        |  0.8401 |  0.8539 |     -0.0138 |        1.9805 |    0.0476 |             1 |
 | gte-base        | e5-large         |  0.8401 |  0.866  |     -0.0259 |        4.7464 |    0      |             1 |
 | gte-base        | bioclinicalbert  |  0.8401 |  0.8794 |     -0.0393 |        5.154  |    0      |             1 |

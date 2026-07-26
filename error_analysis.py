@@ -1,8 +1,9 @@
 import numpy as np
 import pandas as pd
-from function import models_all, num_cols, plot_error_rates, plot_feature_deviation
+from function import models_all, num_cols, num_cols_diabetes130, plot_error_rates, plot_feature_deviation
 
-def analyze_errors():
+def analyze_errors(dataset="heart_disease"):
+    num_cols_used = num_cols_diabetes130 if dataset == "diabetes130" else num_cols
     X_raw = pd.read_csv("datas/preprocessing/X_train_raw.csv")
     n_records = len(X_raw)
 
@@ -44,8 +45,8 @@ def analyze_errors():
         eval_counts[val_idx] += 1
         error_counts[val_idx] += error_mask.astype(int)
 
-        error_rows.append(X_raw.iloc[val_idx[error_mask]][num_cols])
-        correct_rows.append(X_raw.iloc[val_idx[~error_mask]][num_cols])
+        error_rows.append(X_raw.iloc[val_idx[error_mask]][num_cols_used])
+        correct_rows.append(X_raw.iloc[val_idx[~error_mask]][num_cols_used])
 
     df_summary = pd.DataFrame(summary_rows)
     df_summary.to_csv("datas/results/error_summary.csv", index=False)
@@ -64,7 +65,7 @@ def analyze_errors():
     df_error = pd.concat(error_rows, ignore_index=True)
     df_correct = pd.concat(correct_rows, ignore_index=True)
     deviation_rows = []
-    for feature in num_cols:
+    for feature in num_cols_used:
         pooled_std = pd.concat([df_error[feature], df_correct[feature]]).std()
         deviation = (df_error[feature].mean() - df_correct[feature].mean()) / pooled_std if pooled_std else 0.0
         deviation_rows.append({"feature": feature, "deviation": deviation})

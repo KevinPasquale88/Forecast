@@ -9,7 +9,8 @@ from ollama import Client
 from sentence_transformers import SentenceTransformer
 from function import models_all
 
-def embeddings(X,y):
+def embeddings(X, y, dataset="heart_disease"):
+    record_to_text = record_to_text_diabetes130 if dataset == "diabetes130" else record_to_text_heart_disease
     texts = [record_to_text(r) for _, r in X.iterrows()]
     #embedding generation
     generate_all_embeddings(texts, np.asarray(y))
@@ -36,7 +37,7 @@ def _fmt_bool(value, true_label, false_label):
         return "not recorded"
     return true_label if int(round(float(value))) == 1 else false_label
 
-def record_to_text(row):
+def record_to_text_heart_disease(row):
     sex = _fmt_bool(row["sex"], "Male", "Female")
     parts = [
         f"{sex} patient, {_fmt_num(row['age'], ndigits=0)} years old",
@@ -51,6 +52,32 @@ def record_to_text(row):
         f"slope of the peak exercise ST segment: {_fmt_cat(row['slope'], SLOPE_LABELS)}",
         f"number of major vessels colored by fluoroscopy: {_fmt_num(row['ca'], ndigits=0)}",
         f"thalassemia: {_fmt_cat(row['thal'], THAL_LABELS)}",
+    ]
+    return ", ".join(parts)
+
+def _fmt_raw(value):
+    return "not recorded" if pd.isna(value) else str(value)
+
+def record_to_text_diabetes130(row):
+    parts = [
+        f"{_fmt_raw(row['gender'])} patient, age range {_fmt_raw(row['age'])}",
+        f"race: {_fmt_raw(row['race'])}",
+        f"admission type id: {_fmt_raw(row['admission_type_id'])}",
+        f"discharge disposition id: {_fmt_raw(row['discharge_disposition_id'])}",
+        f"admission source id: {_fmt_raw(row['admission_source_id'])}",
+        f"time in hospital: {_fmt_raw(row['time_in_hospital'])} days",
+        f"number of lab procedures: {_fmt_raw(row['num_lab_procedures'])}",
+        f"number of procedures: {_fmt_raw(row['num_procedures'])}",
+        f"number of medications: {_fmt_raw(row['num_medications'])}",
+        f"outpatient visits in prior year: {_fmt_raw(row['number_outpatient'])}",
+        f"emergency visits in prior year: {_fmt_raw(row['number_emergency'])}",
+        f"inpatient visits in prior year: {_fmt_raw(row['number_inpatient'])}",
+        f"number of diagnoses: {_fmt_raw(row['number_diagnoses'])}",
+        f"max glucose serum test result: {_fmt_raw(row['max_glu_serum'])}",
+        f"A1C test result: {_fmt_raw(row['A1Cresult'])}",
+        f"insulin therapy: {_fmt_raw(row['insulin'])}",
+        f"medication changed during encounter: {_fmt_raw(row['change'])}",
+        f"prescribed diabetes medication: {_fmt_raw(row['diabetesMed'])}",
     ]
     return ", ".join(parts)
 

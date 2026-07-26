@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 from umap import UMAP
 from sklearn.metrics import confusion_matrix, roc_curve, roc_auc_score
+from sklearn.model_selection import train_test_split
 import seaborn as sns
 import matplotlib.pyplot as plt
 
@@ -13,9 +14,29 @@ columns = [
 num_cols = ['age', 'trestbps', 'chol', 'thalach', 'oldpeak', 'ca']
 cat_cols = ['sex', 'cp', 'fbs', 'restecg', 'exang', 'slope', 'thal']
 
+# Diabetes 130-US Hospitals dataset (UCI). The raw file has ~50 columns; most are
+# near-constant drug-dosage flags (e.g. examide, citoglipton) or high-missingness
+# identifiers (weight, payer_code, patient_nbr) that add no signal, so only a
+# clinically meaningful subset is kept here.
+columns_diabetes130 = [
+    "race", "gender", "age", "admission_type_id", "discharge_disposition_id",
+    "admission_source_id", "time_in_hospital", "num_lab_procedures", "num_procedures",
+    "num_medications", "number_outpatient", "number_emergency", "number_inpatient",
+    "number_diagnoses", "max_glu_serum", "A1Cresult", "insulin", "change",
+    "diabetesMed", "readmitted"
+]
+num_cols_diabetes130 = [
+    "time_in_hospital", "num_lab_procedures", "num_procedures", "num_medications",
+    "number_outpatient", "number_emergency", "number_inpatient", "number_diagnoses"
+]
+cat_cols_diabetes130 = [
+    "race", "gender", "age", "admission_type_id", "discharge_disposition_id",
+    "admission_source_id", "max_glu_serum", "A1Cresult", "insulin", "change", "diabetesMed"
+]
+
 
 models_ollama = [
-    {"type": "ollama", "model_name":"e5-base","name": "yxchia/multilingual-e5-base", "filename": "e5_base_embeddings.npy", "filename_label": "e5_base_embeddings_labels.npy", "family": "general-purpose"},
+    {"type": "ollama", "model_name":"e5-base","name": "jeffh/intfloat-e5-base-v2:q8_0", "filename": "e5_base_embeddings.npy", "filename_label": "e5_base_embeddings_labels.npy", "family": "general-purpose"},
     {"type": "ollama", "model_name":"gte-base","name": "twwch/m3e-base", "filename": "gte_base_embeddings.npy", "filename_label": "gte_base_embeddings_labels.npy", "family": "general-purpose"},
     {"type": "ollama", "model_name":"gte-large","name": "zyw0605688/gte-large-zh", "filename": "gte_large_embeddings.npy", "filename_label": "gte_large_embeddings_labels.npy", "family": "general-purpose"},
     {"type": "ollama", "model_name":"e5-large","name": "jeffh/intfloat-multilingual-e5-large-instruct:q8_0", "filename": "e5_large_embeddings.npy", "filename_label": "e5_large_embeddings_labels.npy", "family": "general-purpose"}
@@ -50,6 +71,44 @@ results = {
     "gte-base":  {"acc": [], "f1": [], "auc": [], "tau": []}
 }
 
+#load data from files and concatenate into one dataframe
+def load_heart_disease():
+    files = [
+        "datas/heart+disease/processed.cleveland.data",
+        "datas/heart+disease/processed.hungarian.data",
+        "datas/heart+disease/processed.switzerland.data",
+        "datas/heart+disease/processed.va.data"
+    ]
+    dfs = [pd.read_csv(f, header=None, na_values="?") for f in files]
+    df = pd.concat(dfs, ignore_index=True)
+    df.columns = columns
+
+    # In some source files (notably Switzerland and Hungary) missing cholesterol/resting
+    # blood pressure readings are encoded as 0 rather than "?". 0 mg/dl or 0 mm Hg is not a
+    # physiologically valid value for either, so treat it as missing like the rest of the pipeline.
+    df["chol"] = df["chol"].replace(0, np.nan)
+    df["trestbps"] = df["trestbps"].replace(0, np.nan)
+
+    return df
+
+#load and sample the Diabetes 130-US Hospitals dataset from a local CSV
+def load_diabetes130(sample_size=20000, random_state=42):
+    df = pd.read_csv(
+        "datas/diabetes+130-us+hospitals+for+years+1999-2008/diabetic_data.csv", na_values="?"
+    )
+    df = df[columns_diabetes130].copy()
+
+    # Binarize to the standard early-readmission benchmark task for this dataset:
+    # 1 = readmitted within 30 days, 0 = readmitted later or not at all.
+    df["readmitted"] = (df["readmitted"] == "<30").astype(int)
+
+    if sample_size is not None and sample_size < len(df):
+        df, _ = train_test_split(
+            df, train_size=sample_size, stratify=df["readmitted"], random_state=random_state
+        )
+        df = df.reset_index(drop=True)
+
+    return df
 
 def _configure_plot_style():
     sns.set_style("white")
@@ -133,8 +192,9 @@ def delete_files_graphics():
 
 
 # print all datas in one markdown report
-def plot_data_heatmap(X):
-    num_cols = ["age", "trestbps", "chol", "thalach", "oldpeak", "ca"]
+def plot_data_heatmap(X, num_cols=None):
+    if num_cols is None:
+        num_cols = ["age", "trestbps", "chol", "thalach", "oldpeak", "ca"]
     fig, ax = plt.subplots(figsize=FIGSIZE_STD)
     sns.heatmap(X[num_cols].corr(), annot=True, cmap="coolwarm", center=0, ax=ax,
                 cbar_kws={"shrink": 0.75}, linewidths=0.4, linecolor="white")

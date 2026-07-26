@@ -6,41 +6,56 @@ from sklearn.compose import ColumnTransformer
 from imblearn.over_sampling import SMOTENC
 
 
-from function import plot_data_heatmap, columns, num_cols, cat_cols, plot_umap
+from function import (
+    load_heart_disease, load_diabetes130, plot_data_heatmap, plot_umap,
+    num_cols, cat_cols,
+    num_cols_diabetes130, cat_cols_diabetes130,
+)
 
 #main preprocessing function: load, clean, encode, scale data, save preprocessed data for embedding phase
-def preprocessing_data():
-    # fetch dataset from data files
-    heart_disease= load_heart_disease()
-    #first look at the dataset
-    print(heart_disease.shape)
-    print(heart_disease.head())
-    print(heart_disease.columns)
+#dataset: "heart_disease" (default) or "diabetes130"
+def preprocessing_data(dataset="heart_disease"):
+    sample_size = 20000
+    if dataset == "diabetes130":
+        datasetChoosen = load_diabetes130(sample_size=sample_size)
+        target_col = "readmitted"
+        num_cols_used = num_cols_diabetes130
+        cat_cols_used = cat_cols_diabetes130
+    else:
+        datasetChoosen = load_heart_disease()
+        target_col = "num"
+        num_cols_used = num_cols
+        cat_cols_used = cat_cols
 
-    # split dataset into features and target variable  (num is the target variable, the rest are features)
-    X = heart_disease.drop('num', axis=1)
-    y = heart_disease['num']
+    #first look at the dataset
+    print(datasetChoosen.shape)
+    print(datasetChoosen.head())
+    print(datasetChoosen.columns)
+
+    # split dataset into features and target variable (the rest are features)
+    X = datasetChoosen.drop(target_col, axis=1)
+    y = datasetChoosen[target_col]
     y = (y > 0).astype(int)
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
 
     # impute missing values in the raw feature space (required before SMOTE, and so every
     # record stays interpretable for the text description used in the embedding phase)
-    X_train_imputed = impute_raw(X_train)
+    X_train_imputed = impute_raw(X_train, num_cols_used, cat_cols_used)
 
     # balance the target class on the raw/interpretable features with SMOTENC, so synthetic
     # records keep realistic values (real scale numerics + valid categorical codes) and can be
     # converted to text just like real records — plain SMOTE only works in encoded vector space
     # and its synthetic rows can't be mapped back to a clinical record description.
-    X_train_bal, y_train_bal = balance_classes(X_train_imputed, y_train)
+    X_train_bal, y_train_bal = balance_classes(X_train_imputed, y_train, cat_cols_used)
 
     # fit the encoder (scaling + one-hot) on the balanced raw data, used for UMAP/heatmap only
-    encoder = build_encoder(X_train_bal, y_train_bal)
-    X_train_emb_df = data_processed(X_train_bal, y_train_bal, encoder)
+    encoder = build_encoder(X_train_bal, y_train_bal, num_cols_used, cat_cols_used)
+    X_train_emb_df = data_processed(X_train_bal, y_train_bal, encoder, num_cols_used, cat_cols_used)
     plot_umap(X_train_emb_df.drop("target", axis=1), X_train_emb_df["target"], "Preprocessed Data + Embeddings")
     print(X_train_emb_df.head())
     save_data_processed(X_train_emb_df)
-    plot_data_heatmap(X_train_emb_df)
+    plot_data_heatmap(X_train_emb_df, num_cols_used)
 
     # Raw (pre-encoding) clinical features, row-order aligned with the embeddings generated from
     # X_train_bal, so predictions can be traced back to the original/synthetic record for error analysis.
@@ -48,29 +63,11 @@ def preprocessing_data():
 
     return X_train_bal, y_train_bal
 
-#load data from files and concatenate into one dataframe
-def load_heart_disease():
-    files = [
-        "datas/heart+disease/processed.cleveland.data",
-        "datas/heart+disease/processed.hungarian.data",
-        "datas/heart+disease/processed.switzerland.data",
-        "datas/heart+disease/processed.va.data"
-    ]
-    dfs = [pd.read_csv(f, header=None, na_values="?") for f in files]
-    df = pd.concat(dfs, ignore_index=True)
-    df.columns = columns
 
-    # In some source files (notably Switzerland and Hungary) missing cholesterol/resting
-    # blood pressure readings are encoded as 0 rather than "?". 0 mg/dl or 0 mm Hg is not a
-    # physiologically valid value for either, so treat it as missing like the rest of the pipeline.
-    df["chol"] = df["chol"].replace(0, np.nan)
-    df["trestbps"] = df["trestbps"].replace(0, np.nan)
-
-    return df
 
 #preparation functions: impute, balance, encode data, save preprocessed data
 
-def impute_raw(X):
+def impute_raw(X, num_cols, cat_cols):
     X = X.copy()
     for col in num_cols:
         X[col] = X[col].fillna(X[col].median())
@@ -78,7 +75,7 @@ def impute_raw(X):
         X[col] = X[col].fillna(X[col].mode().iloc[0])
     return X
 
-def balance_classes(X, y):
+def balance_classes(X, y, cat_cols):
     # SMOTENC handles the mix of numeric and categorical columns directly on the raw
     # feature space: numeric features are interpolated, categorical ones are set to the
     # majority value among nearest neighbors, so every synthetic row is still a valid
@@ -88,7 +85,7 @@ def balance_classes(X, y):
     X_res, y_res = smote_nc.fit_resample(X, y)
     return X_res, y_res
 
-def build_encoder(X, y):
+def build_encoder(X, y, num_cols, cat_cols):
     numeric_transformer = StandardScaler()
     categorical_transformer = OneHotEncoder(handle_unknown='ignore')
 
@@ -101,7 +98,7 @@ def build_encoder(X, y):
 
     return preprocessor.fit(X, y)
 
-def data_processed(X_train, y_train, preprocessor):
+def data_processed(X_train, y_train, preprocessor, num_cols, cat_cols):
     X_train_emb = preprocessor.transform(X_train)
     num_features = num_cols
     cat_features = list(

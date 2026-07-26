@@ -79,7 +79,7 @@ fi
 echo ""
 echo "[INFO] Checking Ollama models..."
 
-MODELS=("yxchia/multilingual-e5-base" "twwch/m3e-base" "zyw0605688/gte-large-zh" "jeffh/intfloat-multilingual-e5-large-instruct:q8_0")
+MODELS=("jeffh/intfloat-e5-base-v2:q8_0" "twwch/m3e-base" "zyw0605688/gte-large-zh" "jeffh/intfloat-multilingual-e5-large-instruct:q8_0")
 
 for m in "${MODELS[@]}"; do
     if ollama list | grep -q "$m"; then
@@ -100,7 +100,8 @@ echo "       🚀 STARTING PYTHON PIPELINE STEPS"
 echo "====================================================="
 
 echo ">>> START MAIN"
-python3 main.py || exit 1
+# Forward any CLI args, e.g.: ./run_all.sh --dataset diabetes130
+python3 main.py "$@" || exit 1
 
 # ======================================================
 # 6) Finish
