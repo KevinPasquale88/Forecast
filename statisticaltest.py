@@ -1,12 +1,14 @@
 
+import os
 from MLstatkit import Delong_test
 import numpy as np
 import pandas as pd
 from scipy.stats import ttest_rel
 from scipy.stats import wilcoxon
-from function import models_all
+from function import get_output_dirs, models_all
 
-def test_statistical_tests():
+def test_statistical_tests(dataset="heart_disease"):
+    dirs = get_output_dirs(dataset)
     metrics = ["acc", "f1", "auc"]
     wilcoxon_results = []
     ttest_results = []
@@ -18,7 +20,7 @@ def test_statistical_tests():
         boot_scores = {}
         for model_name in models:
             boot_scores[model_name] = np.load(
-                f"datas/results/{model_name}_boot_{metric}.npy"
+                os.path.join(dirs["results"], f"{model_name}_boot_{metric}.npy")
             )
 
         # Compare each pair of models
@@ -57,15 +59,15 @@ def test_statistical_tests():
 
     # Salva CSV
     pd.DataFrame(wilcoxon_results).to_csv(
-        "datas/results/wilcoxon_comparison.csv", index=False
+        os.path.join(dirs["results"], "wilcoxon_comparison.csv"), index=False
     )
     pd.DataFrame(ttest_results).to_csv(
-        "datas/results/ttest_comparison.csv", index=False
+        os.path.join(dirs["results"], "ttest_comparison.csv"), index=False
     )
-    test_delong()
+    test_delong(dirs)
     print("End statistical tests completed and saved.")
-    
-def test_delong():
+
+def test_delong(dirs):
     # Placeholder for DeLong test implementation
     delong_results = []
     models = [m["model_name"] for m in models_all]
@@ -74,8 +76,8 @@ def test_delong():
     scores = {}
     for model_name in models:
         scores[model_name] = {
-            "y_true":  np.load(f"datas/results/{model_name}_y_true.npy"),
-            "y_score": np.load(f"datas/results/{model_name}_y_score.npy")
+            "y_true":  np.load(os.path.join(dirs["results"], f"{model_name}_y_true.npy")),
+            "y_score": np.load(os.path.join(dirs["results"], f"{model_name}_y_score.npy"))
         }
         
     for i in range(len(models)):
@@ -118,5 +120,5 @@ def test_delong():
             )
 
     df_delong = pd.DataFrame(delong_results)
-    df_delong.to_csv("datas/results/delong_comparison.csv", index=False)
+    df_delong.to_csv(os.path.join(dirs["results"], "delong_comparison.csv"), index=False)
     print("\n✅ DeLong test completato → delong_comparison.csv")

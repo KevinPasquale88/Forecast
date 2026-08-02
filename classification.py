@@ -1,15 +1,17 @@
+import os
 import numpy as np
 import pandas as pd
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score, f1_score, precision_recall_curve, roc_auc_score
 from sklearn.model_selection import StratifiedKFold
-from function import models_all, plot_metric_comparison, results
+from function import models_all, plot_metric_comparison, results, get_output_dirs
 
-def training_classifier():
+def training_classifier(dataset="heart_disease"):
+    dirs = get_output_dirs(dataset)
     for model in models_all:
         print(f"Evaluating model: {model['name']}")
-        X = np.load(f"datas/embeddings/{model['filename']}",allow_pickle=True)
-        y = np.load(f"datas/embeddings/{model['filename_label']}",allow_pickle=True)
+        X = np.load(os.path.join(dirs["embeddings"], model['filename']), allow_pickle=True)
+        y = np.load(os.path.join(dirs["embeddings"], model['filename_label']), allow_pickle=True)
         kf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
         logisticReg = LogisticRegression(max_iter=2000)
         tmp_results = []
@@ -58,13 +60,13 @@ def training_classifier():
         all_y_scores = np.concatenate(all_y_scores)
         all_y_preds = np.concatenate(all_y_preds)
         all_val_idx = np.concatenate(all_val_idx)
-        np.save(f"datas/results/{model['model_name']}_y_true.npy", all_y_true)
-        np.save(f"datas/results/{model['model_name']}_y_score.npy", all_y_scores)
-        np.save(f"datas/results/{model['model_name']}_y_pred.npy", all_y_preds)
-        np.save(f"datas/results/{model['model_name']}_val_idx.npy", all_val_idx)
+        np.save(os.path.join(dirs["results"], f"{model['model_name']}_y_true.npy"), all_y_true)
+        np.save(os.path.join(dirs["results"], f"{model['model_name']}_y_score.npy"), all_y_scores)
+        np.save(os.path.join(dirs["results"], f"{model['model_name']}_y_pred.npy"), all_y_preds)
+        np.save(os.path.join(dirs["results"], f"{model['model_name']}_val_idx.npy"), all_val_idx)
         print(f"[OK] Saved y_true, y_score, y_pred, val_idx for model {model['model_name']}")
     df = pd.DataFrame(results).T   # transpose to have models as rows
-    df.to_csv("datas/results/model_performance.csv")
+    df.to_csv(os.path.join(dirs["results"], "model_performance.csv"))
     print("Saved to model_performance.csv")
     df_summary = pd.DataFrame({
         "model": list(results.keys()),
@@ -73,4 +75,4 @@ def training_classifier():
         "auc": [v["auc"] for v in results.values()],
         "tau": [v["tau"] for v in results.values()]
     })
-    plot_metric_comparison(df_summary)
+    plot_metric_comparison(df_summary, results_dir=dirs["results"])

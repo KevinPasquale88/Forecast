@@ -2,19 +2,19 @@ import pandas as pd
 import os
 import datetime
 
+from function import get_output_dirs
+
 # ============================================================
 #  LOAD SUMMARY DATA (CSV with mean metrics and confidence intervals)
 # ============================================================
 
-def load_summary(summary_path="datas/results/encoder_comparison_summary.csv"):
+def load_summary(summary_path):
     if not os.path.exists(summary_path):
         raise FileNotFoundError(f"File not found: {summary_path}")
     return pd.read_csv(summary_path)
 
 
-def load_statistical_results(wilcoxon_path="datas/results/wilcoxon_comparison.csv",
-                             ttest_path="datas/results/ttest_comparison.csv",
-                             delong_path="datas/results/delong_comparison.csv"):
+def load_statistical_results(wilcoxon_path, ttest_path, delong_path):
     results = {}
     if os.path.exists(wilcoxon_path):
         results["wilcoxon"] = pd.read_csv(wilcoxon_path)
@@ -38,7 +38,7 @@ def load_statistical_results(wilcoxon_path="datas/results/wilcoxon_comparison.cs
 #  BUILD MARKDOWN CONTENT
 # ============================================================
 
-def generate_markdown(summary):
+def generate_markdown(summary, dirs):
     now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
 
     md = []
@@ -70,7 +70,7 @@ def generate_markdown(summary):
     # ============================
 
     md.append("## 📉 ROC Curve Comparison\n")
-    roc_path = "datas/graphics/ROC_comparison.png"
+    roc_path = os.path.join(dirs["graphics"], "ROC_comparison.png")
     real_roc_path = "../graphics/ROC_comparison.png"
     if os.path.exists(roc_path):
         md.append(f"![ROC Comparison]({real_roc_path})\n")
@@ -79,7 +79,7 @@ def generate_markdown(summary):
 
     md.append("## 🧩 Confusion Matrix\n")
     for model in summary["model"]:
-        cm_path = f"datas/graphics/CM_{model}.png"
+        cm_path = os.path.join(dirs["graphics"], f"CM_{model}.png")
         real_cm_path = f"../graphics/CM_{model}.png"
         if os.path.exists(cm_path):
             md.append(f"### {model}\n")
@@ -87,7 +87,7 @@ def generate_markdown(summary):
 
     md.append("\n---\n")
 
-    boxplot_path = "datas/results/BOXPLOT_metrics.png"
+    boxplot_path = os.path.join(dirs["results"], "BOXPLOT_metrics.png")
     real_boxplot_path = "../results/BOXPLOT_metrics.png"
     if os.path.exists(boxplot_path):
         md.append("## 📦 Bootstrapped Metric Boxplot\n")
@@ -95,7 +95,7 @@ def generate_markdown(summary):
 
     md.append("\n---\n")
 
-    meanci_path = "datas/results/MeanCI_metrics.png"
+    meanci_path = os.path.join(dirs["results"], "MeanCI_metrics.png")
     real_meanci_path = "../results/MeanCI_metrics.png"
     if os.path.exists(meanci_path):
         md.append("## 📐 Mean ± Confidence Interval\n")
@@ -104,7 +104,7 @@ def generate_markdown(summary):
 
     md.append("\n---\n")
 
-    family_path = "datas/results/FamilyComparison_metrics.png"
+    family_path = os.path.join(dirs["results"], "FamilyComparison_metrics.png")
     real_family_path = "../results/FamilyComparison_metrics.png"
     if os.path.exists(family_path):
         md.append("## 🧬 Model Family Comparison\n")
@@ -117,7 +117,7 @@ def generate_markdown(summary):
     # ERROR ANALYSIS
     # ============================
 
-    error_summary_path = "datas/results/error_summary.csv"
+    error_summary_path = os.path.join(dirs["results"], "error_summary.csv")
     if os.path.exists(error_summary_path):
         md.append("## 🩺 Error Analysis\n")
         md.append("Misclassified cases (false positives / false negatives) are traced back to the original clinical record for every model, using the fold validation indices saved during training.\n")
@@ -127,19 +127,19 @@ def generate_markdown(summary):
         md.append(df_error_summary.to_markdown(index=False))
         md.append("\n\n")
 
-        error_rates_path = "datas/results/ErrorAnalysis_rates.png"
+        error_rates_path = os.path.join(dirs["results"], "ErrorAnalysis_rates.png")
         real_error_rates_path = "../results/ErrorAnalysis_rates.png"
         if os.path.exists(error_rates_path):
             md.append(f"![Error Rates]({real_error_rates_path})\n")
 
-        feature_dev_path = "datas/results/ErrorAnalysis_feature_deviation.png"
+        feature_dev_path = os.path.join(dirs["results"], "ErrorAnalysis_feature_deviation.png")
         real_feature_dev_path = "../results/ErrorAnalysis_feature_deviation.png"
         if os.path.exists(feature_dev_path):
             md.append("### Clinical feature deviation: misclassified vs. correctly classified\n")
             md.append("Standardized mean difference per clinical feature, pooled across all models (positive = higher in misclassified cases).\n")
             md.append(f"![Feature Deviation]({real_feature_dev_path})\n")
 
-        hardest_cases_path = "datas/results/hardest_cases.csv"
+        hardest_cases_path = os.path.join(dirs["results"], "hardest_cases.csv")
         if os.path.exists(hardest_cases_path):
             df_hardest = pd.read_csv(hardest_cases_path)
             md.append("### Hardest cases (most frequently misclassified across models)\n")
@@ -152,7 +152,11 @@ def generate_markdown(summary):
     # STATISTICAL TESTS
     # ============================
 
-    stat_results = load_statistical_results()
+    stat_results = load_statistical_results(
+        wilcoxon_path=os.path.join(dirs["results"], "wilcoxon_comparison.csv"),
+        ttest_path=os.path.join(dirs["results"], "ttest_comparison.csv"),
+        delong_path=os.path.join(dirs["results"], "delong_comparison.csv"),
+    )
     if stat_results["wilcoxon"] is not None or stat_results["ttest"] is not None or stat_results["delong"] is not None:
         md.append("## 🧪 Statistical Tests\n")
         md.append("This section reports pairwise comparisons between model bootstrap metrics using Wilcoxon signed-rank tests, paired t-tests, and DeLong AUC comparisons.\n")
@@ -178,7 +182,7 @@ def generate_markdown(summary):
         md.append("---\n")
     else:
         md.append("## 🧪 Statistical Tests\n")
-        md.append("No statistical test results were found. Ensure `datas/results/wilcoxon_comparison.csv`, `datas/results/ttest_comparison.csv`, and `datas/results/delong_comparison.csv` are generated before running report generation.\n")
+        md.append(f"No statistical test results were found. Ensure `{dirs['results']}/wilcoxon_comparison.csv`, `{dirs['results']}/ttest_comparison.csv`, and `{dirs['results']}/delong_comparison.csv` are generated before running report generation.\n")
         md.append("---\n")
 
     # ============================
@@ -227,15 +231,16 @@ def generate_markdown(summary):
 #  MAIN
 # ============================================================
 
-def generate_report():
+def generate_report(dataset="heart_disease"):
+    dirs = get_output_dirs(dataset)
 
     print("[INFO] Loading metric summary...")
-    summary = load_summary()
+    summary = load_summary(os.path.join(dirs["results"], "encoder_comparison_summary.csv"))
 
     print("[INFO] Generating markdown report...")
-    md_content = generate_markdown(summary)
+    md_content = generate_markdown(summary, dirs)
 
-    md_path = "datas/reports/report.md"
+    md_path = os.path.join(dirs["reports"], "report.md")
 
     with open(md_path, "w") as f:
         f.write(md_content)

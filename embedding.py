@@ -1,5 +1,7 @@
 from concurrent.futures import ThreadPoolExecutor
 import os
+import threading
+import time
 
 from dotenv import load_dotenv
 from huggingface_hub import login
@@ -7,13 +9,14 @@ import numpy as np
 import pandas as pd
 from ollama import Client
 from sentence_transformers import SentenceTransformer
-from function import models_all
+from function import get_output_dirs, models_all
 
 def embeddings(X, y, dataset="heart_disease"):
+    dirs = get_output_dirs(dataset)
     record_to_text = record_to_text_diabetes130 if dataset == "diabetes130" else record_to_text_heart_disease
     texts = [record_to_text(r) for _, r in X.iterrows()]
     #embedding generation
-    generate_all_embeddings(texts, np.asarray(y))
+    generate_all_embeddings(texts, np.asarray(y), dirs["embeddings"])
 
 
 # Standard UCI Heart Disease attribute encodings
@@ -89,11 +92,49 @@ def save_labels_to_npy(labels, filename):
     labels = np.array(labels, dtype=np.int32)
     np.save(filename, labels)
 
-def generate_embeddings_batch(model_name, texts):
+# Ollama's local server spawns a tokenizer subprocess reachable over a local HTTP
+# port; sending very large batches (and running several models concurrently) can
+# exhaust local ephemeral ports and/or overload it, causing connection errors like
+# "dial tcp 127.0.0.1:xxxxx: connect: can't assign requested address". Serializing
+# calls and chunking into small batches keeps a single, short-lived request in
+# flight at a time so the local server never gets overwhelmed.
+_ollama_semaphore = threading.Semaphore(1)
+
+def generate_embeddings_batch(model_name, texts, batch_size=16, max_retries=5,
+                               retry_delay=2.0, inter_batch_delay=0.3):
     client = Client()
-    print(f"[Batch] Generating embeddings for model: {model_name}")
-    result = client.embed(model=model_name, input=texts)
-    return result.embeddings
+    num_batches = (len(texts) + batch_size - 1) // batch_size
+    print(f"[Batch] Generating embeddings for model: {model_name} "
+          f"({len(texts)} texts in {num_batches} batches of {batch_size})")
+
+    all_embeddings = []
+    for batch_idx in range(num_batches):
+        start = batch_idx * batch_size
+        batch = texts[start:start + batch_size]
+
+        for attempt in range(1, max_retries + 1):
+            try:
+                with _ollama_semaphore:
+                    result = client.embed(model=model_name, input=batch)
+                all_embeddings.extend(result.embeddings)
+                break
+            except Exception as e:
+                if attempt == max_retries:
+                    raise RuntimeError(
+                        f"[Batch] {model_name}: batch {batch_idx + 1}/{num_batches} "
+                        f"failed after {max_retries} attempts: {e}"
+                    ) from e
+                wait = retry_delay * attempt
+                print(f"[Batch] {model_name}: batch {batch_idx + 1}/{num_batches} "
+                      f"failed (attempt {attempt}/{max_retries}): {e}. "
+                      f"Retrying in {wait:.1f}s...")
+                time.sleep(wait)
+
+        if (batch_idx + 1) % 10 == 0 or (batch_idx + 1) == num_batches:
+            print(f"[Batch] {model_name}: {batch_idx + 1}/{num_batches} batches done")
+        time.sleep(inter_batch_delay)
+
+    return all_embeddings
 
 def generate_embeddings_hf(texts, model_name):
     print(f"[HF] Inizializzazione modello: {model_name}")
@@ -138,10 +179,10 @@ def generate_embeddings_hf(texts, model_name):
     
     return embeddings
 
-def process_model(model, texts, labels):
+def process_model(model, texts, labels, embeddings_dir):
     name = model["name"]
-    file_emb = f"datas/embeddings/{model['filename']}"
-    file_lab = f"datas/embeddings/{model['filename_label']}"
+    file_emb = os.path.join(embeddings_dir, model['filename'])
+    file_lab = os.path.join(embeddings_dir, model['filename_label'])
     try:
         print(f"\n=== Processing {name} ===")
         
@@ -157,12 +198,12 @@ def process_model(model, texts, labels):
     except Exception as e:
         print(f"[ERROR] Model {name}: {e}")
 
-def generate_all_embeddings(texts, labels, max_workers=3):
+def generate_all_embeddings(texts, labels, embeddings_dir, max_workers=3):
     print(f"\nRunning embedding generation for {len(models_all)} models...")
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = []
         for m in models_all:
-            futures.append(executor.submit(process_model, m, texts, labels))
+            futures.append(executor.submit(process_model, m, texts, labels, embeddings_dir))
         for f in futures:
             f.result()
     print("\nAll embeddings generated successfully!")
