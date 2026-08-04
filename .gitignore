@@ -8,4 +8,5 @@ __pycache__/
 *.egg-info
 dist
 build
-*.log
+*.logdatas/diabetes130/embeddings/gte_large_embeddings.npy
+datas/diabetes130/embeddings/e5_large_embeddings.npy
