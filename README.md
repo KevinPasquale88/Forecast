@@ -55,10 +55,10 @@ Forecast/
 
 ## Research Questions
 **Primary:**
-> L'utilizzo di embedding semantici generati localmente tramite modelli linguistici consente di supportare efficacemente task di classificazione clinica a partire da dati strutturati convertiti in linguaggio naturale?
+> Does using semantic embeddings generated locally by language models effectively support clinical classification tasks starting from structured data converted into natural language?
 
 **Secondary:**
-> Gli embedding model specializzati per il dominio biomedicale producono rappresentazioni semantiche più efficaci rispetto ai modelli general-purpose nel task di classificazione clinica basato su dati tabellari trasformati in testo?
+> Do embedding models specialized for the biomedical domain produce more effective semantic representations than general-purpose models for a clinical classification task based on tabular data transformed into text?
 
 The secondary question is answered directly by the pipeline's model configuration in [function.py](function.py), which tags every encoder with a `family`:
 

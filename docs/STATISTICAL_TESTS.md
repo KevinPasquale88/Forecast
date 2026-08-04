@@ -3,19 +3,19 @@
 ## Overview
 Statistical significance testing is performed to rigorously compare classification performance across different embedding models. This phase validates whether observed performance differences are statistically significant or due to chance variation.
 
-## Methodologia
+## Methodology
 - **Main file**: [statisticaltest.py](../statisticaltest.py)
 - **Bootstrap framework**: Builds upon bootstrap metrics generated during classification phase
 - **Test sample size**: 10,000 bootstrap resamples per model and metric
 - **Comparison scope**: All pairwise model comparisons
 
-## Metriche Testate
+## Metrics Tested
 The following performance metrics are compared across all model pairs:
 1. **Accuracy (acc)**: Overall classification correctness
 2. **F1-Score (f1)**: Harmonic mean of precision and recall (macro-averaged)
 3. **ROC-AUC (auc)**: Area under the receiver operating characteristic curve
 
-## Test Statistici Implementati
+## Statistical Tests Implemented
 
 ### 1. Wilcoxon Signed-Rank Test
 **Purpose**: Non-parametric test for paired samples; does not assume normality.
@@ -54,7 +54,7 @@ The following performance metrics are compared across all model pairs:
 
 **Output**: z-statistic, p-value, AUC for each model, and the AUC delta
 
-## Interpretazione dei Risultati
+## Results Interpretation
 Results are saved in three CSV files:
 - `datas/results/wilcoxon_comparison.csv` — Wilcoxon signed-rank test results
 - `datas/results/ttest_comparison.csv` — Paired t-test results
@@ -74,14 +74,14 @@ Results are saved in three CSV files:
 - **significant = 1**: Difference is significant at 95% confidence level
 - **significant = 0**: Difference is not statistically significant
 
-## Significato Clinico vs. Statistico
+## Clinical vs. Statistical Significance
 **Important distinction**:
 - **Statistical significance** (p < 0.05): Difference is unlikely due to random chance
 - **Clinical significance**: Difference is practically meaningful for clinical decision-making
   - Example: A 0.5% difference in accuracy may be statistically significant but not clinically relevant
   - Example: A 5% difference in sensitivity may be both statistically and clinically significant (especially for FN implications)
 
-## Robustezza del Test
+## Test Robustness
 **Why Wilcoxon, paired t-test, and DeLong together**:
 - Provides cross-validation of results through complementary statistical approaches
 - Wilcoxon is more robust if normality assumption is violated

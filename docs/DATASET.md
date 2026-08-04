@@ -4,7 +4,7 @@ The pipeline supports two clinical datasets, selected via `--dataset {heart_dise
 
 ## Dataset 1 — UCI Heart Disease
 
-## Origine e Descrizione
+## Origin and Description
 The dataset used in this project is the **UCI Heart Disease dataset** from the [UCI Machine Learning Repository](https://archive.ics.uci.edu/dataset/45/heart+disease).
 
 **Dataset Characteristics:**
@@ -71,7 +71,7 @@ This approach bridges structured clinical data and semantic embeddings, enabling
 
 ## Dataset 2 — Diabetes 130-US Hospitals
 
-### Origine e Descrizione
+### Origin and Description
 The **Diabetes 130-US Hospitals dataset (1999–2008)** from the [UCI Machine Learning Repository](https://archive.ics.uci.edu/dataset/296/diabetes+130-us+hospitals+for+years+1999-2008) contains records of hospital encounters for patients with diabetes, collected across 130 US hospitals and integrated delivery networks over 10 years.
 
 **Dataset Characteristics:**
