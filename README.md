@@ -4,7 +4,7 @@ Automatic disease prediction from clinical datasets using a fully local pipeline
 
 ```mermaid
 flowchart LR
-    A[Raw UCI\nHeart Disease data] --> B[Preprocessing\nimpute · SMOTENC · scale]
+    A[Raw UCI data\nHeart Disease / Diabetes130] --> B[Preprocessing\nimpute · SMOTENC · scale]
     B --> C[Tabular → Text\nrecord_to_text]
     C --> D[Embedding\nOllama + sentence-transformers]
     D --> E[Classification\nLogisticRegression · 5-fold CV]
@@ -18,10 +18,11 @@ flowchart LR
 ## Highlights
 - **Fully local & private**: no external API calls — embeddings are generated via Ollama (general-purpose encoders) and local `sentence-transformers` (biomedical encoders).
 - **Tabular-to-text pipeline**: structured clinical records are converted into natural language before embedding, testing whether language-model representations capture clinical signal from tabular data.
+- **Two clinical benchmarks**: UCI Heart Disease (diagnosis) and Diabetes 130-US Hospitals (30-day readmission), selectable via `--dataset`, each with its own isolated output tree.
 - **General-purpose vs. biomedical comparison**: models are tagged by `family` (general-purpose, biomedical, biomedical sentence-transformers) enabling a direct comparison of domain-specific vs. general embeddings.
 - **Rigorous statistical validation**: 10,000-resample bootstrap plus Wilcoxon, paired t-test, and DeLong tests for every pairwise model comparison.
 - **Explainable failures**: every misclassification is traced back to the original clinical record, with per-feature deviation analysis of what characterizes the hardest cases.
-- **One-command reproducibility**: `main.py` (or `run_all.sh`) orchestrates the entire pipeline end-to-end and produces a self-contained Markdown report.
+- **One-command reproducibility**: `main.py` (or `run_pipeline.sh`) orchestrates the entire pipeline end-to-end and produces a self-contained Markdown report.
 
 ## Repository Structure
 ```
@@ -36,13 +37,17 @@ Forecast/
 ├── function.py              # shared config (model list/families), plot style
 ├── generatereport.py       # assembles the final markdown report
 ├── run_pipeline.sh/.bat/.ps1  # one-command setup + pipeline execution
+├── datasets/
+│   ├── heart+disease/                              # raw UCI Heart Disease source files
+│   └── diabetes+130-us+hospitals+for+years+1999-2008/  # raw UCI Diabetes130 source files
 ├── datas/
-│   ├── heart+disease/      # raw UCI source files
-│   ├── preprocessing/      # preprocessed features + raw CSV for traceability
-│   ├── embeddings/         # per-model embedding vectors and labels
-│   ├── results/            # predictions, bootstrap arrays, comparison CSVs, plots
-│   ├── graphics/           # UMAP, ROC, confusion matrix, heatmap plots
-│   └── reports/            # generated report.md
+│   ├── heart_disease/       # per-dataset output tree (see below)
+│   │   ├── preprocessing/  # preprocessed features + raw CSV for traceability
+│   │   ├── embeddings/     # per-model embedding vectors and labels
+│   │   ├── results/        # predictions, bootstrap arrays, comparison CSVs, plots
+│   │   ├── graphics/       # UMAP, ROC, confusion matrix, heatmap plots
+│   │   └── reports/        # generated report.md
+│   └── diabetes130/        # same structure, isolated for the second dataset
 └── docs/
     ├── DATASET.md          # full dataset description, ethics, limitations
     └── STATISTICAL_TESTS.md # statistical methodology in depth
@@ -65,8 +70,15 @@ The secondary question is answered directly by the pipeline's model configuratio
 
 This grouping drives the Model Family Comparison plot (see [Evaluation and Visualization](#evaluation-and-visualization)) and the color palette used across every figure.
 
-## Dataset
-The project uses the **UCI Heart Disease dataset** (297 records, 14 clinical attributes, binary target). Full details on origin, features, ethics, and limitations are in **[docs/DATASET.md](docs/DATASET.md)**.
+## Datasets
+The pipeline supports two clinical datasets, selected with `--dataset` (default `heart_disease`):
+
+| Dataset | `--dataset` value | Records used | Features | Target |
+|---|---|---|---|---|
+| UCI Heart Disease | `heart_disease` | 297 | 14 clinical attributes | Disease presence (binary) |
+| Diabetes 130-US Hospitals | `diabetes130` | 20,000 (stratified sample of ~100k) | 19 encounter attributes | Readmission within 30 days (binary) |
+
+Full details on origin, features, ethics, and limitations for both datasets are in **[docs/DATASET.md](docs/DATASET.md)**.
 
 ## Prerequisites
 - **Python**: 3.14 (developed and tested against this version; earlier 3.x versions are untested). The `env/` folder is a local virtual environment created by [Installation](#installation) step 2 — it is **not** committed to the repository, so every clone must run `pip install -r requirements.txt` itself.
@@ -160,24 +172,34 @@ All of the above feed into the generated report, grounding the discussion of fai
 Wilcoxon signed-rank, paired t-test, and DeLong test are run across all pairwise model comparisons on bootstrap distributions (10,000 resamples). Results saved to `datas/results/{wilcoxon,ttest,delong}_comparison.csv`. Full methodology, hypotheses, and interpretation guidance in **[docs/STATISTICAL_TESTS.md](docs/STATISTICAL_TESTS.md)**.
 
 ## `datas/` Folder Structure
+Each dataset gets its own tree under `datas/<dataset>/` (`heart_disease` or `diabetes130`), created by `get_output_dirs()` in `function.py`, so switching `--dataset` never overwrites the other dataset's run:
+
 | Folder | Contents |
 |---|---|
-| `datas/heart+disease/` | Raw UCI source files (`processed.cleveland.data`, etc.) |
-| `datas/preprocessing/` | `preprocessed_data.npy` / `preprocessed_labels.npy` (encoded features) and `X_train_raw.csv` (raw clinical features, row-aligned with embeddings) |
-| `datas/embeddings/` | Per-model embedding vectors (`*_embeddings.npy`) and labels (`*_embeddings_labels.npy`) |
-| `datas/results/` | Per-model predictions, bootstrap arrays, comparison tables, error-analysis outputs, and plots |
-| `datas/graphics/` | UMAP, ROC comparison, confusion matrix, and heatmap plots (PNG + PDF) |
-| `datas/reports/` | The generated `report.md` |
+| `datasets/heart+disease/`, `datasets/diabetes+130-.../` | Raw UCI source files (not touched by the pipeline) |
+| `datas/<dataset>/preprocessing/` | `preprocessed_data.npy` / `preprocessed_labels.npy` (encoded features) and `X_train_raw.csv` (raw features, row-aligned with embeddings) |
+| `datas/<dataset>/embeddings/` | Per-model embedding vectors (`*_embeddings.npy`) and labels (`*_embeddings_labels.npy`) |
+| `datas/<dataset>/results/` | Per-model predictions, bootstrap arrays, comparison tables, error-analysis outputs, and plots |
+| `datas/<dataset>/graphics/` | UMAP, ROC comparison, confusion matrix, and heatmap plots (PNG + PDF) |
+| `datas/<dataset>/reports/` | The generated `report.md` |
 
 ## Execution
-The full pipeline (preprocessing → embedding → classification → evaluation → error analysis → statistical tests → report) is orchestrated by `main.py`:
+The full pipeline (preprocessing → embedding → classification → evaluation → error analysis → statistical tests → report) is orchestrated by `main.py` and takes a single `--dataset` flag to pick which clinical dataset to run:
+
 ```bash
 source env/bin/activate
-python main.py
+python main.py --dataset heart_disease   # UCI Heart Disease benchmark
+python main.py --dataset diabetes130     # Diabetes 130-US Hospitals benchmark
 ```
-or, to also automate environment setup and Ollama model downloads:
+
+> ⚠️ **Default dataset**: `--dataset` is optional and **defaults to `heart_disease`** ([main.py](main.py)) — running `python main.py` with no flag will *not* run the Diabetes130 benchmark. Pass `--dataset diabetes130` explicitly to run it.
+
+Each run first wipes and regenerates only *that dataset's* own `datas/<dataset>/` tree (preprocessing, embeddings, results, graphics — see [`datas/` Folder Structure](#datas-folder-structure) above); the other dataset's previous outputs are left untouched, so the two benchmarks can be run independently and compared side by side.
+
+To automate environment setup and Ollama model downloads as well, use `run_pipeline.sh` (`.bat` / `.ps1` on Windows), which forwards any arguments to `main.py`:
 ```bash
-./run_pipeline.sh
+./run_pipeline.sh                        # defaults to heart_disease
+./run_pipeline.sh --dataset diabetes130
 ```
 Note: embedding generation for the general-purpose models uses `ollama.Client` in `embedding.py` — ensure the Ollama service is running and the required models have been pulled (see [Installation](#installation)).
 
