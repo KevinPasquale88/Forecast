@@ -1,6 +1,10 @@
 ./env
 .env
+.DS_Store
 __pycache__/
+# Streamlit auto-installed dev-tool skills (environment-specific symlinks)
+.agents/skills/developing-with-streamlit/
+.claude/skills/developing-with-streamlit/
 *.pyc
 *.pyd
 *.so
@@ -11,3 +15,5 @@ build
 *.log
 datas/diabetes130/embeddings/gte_large_embeddings.npy
 datas/diabetes130/embeddings/e5_large_embeddings.npy
+.claude
+.agents

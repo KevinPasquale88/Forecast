@@ -1,20 +1,16 @@
 import os
-import numpy as np
-import pandas as pd
+
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler, OneHotEncoder
-from sklearn.compose import ColumnTransformer
 from imblearn.over_sampling import SMOTENC
 
-
 from function import (
-    load_heart_disease, load_diabetes130, plot_data_heatmap, plot_umap,
+    load_heart_disease, load_diabetes130,
     num_cols, cat_cols,
     num_cols_diabetes130, cat_cols_diabetes130,
     get_output_dirs,
 )
 
-#main preprocessing function: load, clean, encode, scale data, save preprocessed data for embedding phase
+#main preprocessing function: load, clean, balance the raw clinical records for a dataset
 #dataset: "heart_disease" (default) or "diabetes130"
 def preprocessing_data(dataset="heart_disease"):
     dirs = get_output_dirs(dataset)
@@ -30,10 +26,8 @@ def preprocessing_data(dataset="heart_disease"):
         num_cols_used = num_cols
         cat_cols_used = cat_cols
 
-    #first look at the dataset
     print(datasetChoosen.shape)
     print(datasetChoosen.head())
-    print(datasetChoosen.columns)
 
     # split dataset into features and target variable (the rest are features)
     X = datasetChoosen.drop(target_col, axis=1)
@@ -52,26 +46,14 @@ def preprocessing_data(dataset="heart_disease"):
     # and its synthetic rows can't be mapped back to a clinical record description.
     X_train_bal, y_train_bal = balance_classes(X_train_imputed, y_train, cat_cols_used)
 
-    # fit the encoder (scaling + one-hot) on the balanced raw data, used for UMAP/heatmap only
-    encoder = build_encoder(X_train_bal, y_train_bal, num_cols_used, cat_cols_used)
-    X_train_emb_df = data_processed(X_train_bal, y_train_bal, encoder, num_cols_used, cat_cols_used)
-    plot_umap(X_train_emb_df.drop("target", axis=1), X_train_emb_df["target"], "Preprocessed Data + Embeddings",
-              graphics_dir=dirs["graphics"])
-    print(X_train_emb_df.head())
-    save_data_processed(X_train_emb_df, dirs["preprocessing"])
-    plot_data_heatmap(X_train_emb_df, num_cols_used, graphics_dir=dirs["graphics"])
-
-    # Raw (pre-encoding) clinical features, row-order aligned with the embeddings generated from
-    # X_train_bal, so predictions can be traced back to the original/synthetic record for error analysis.
+    # Raw (pre-embedding) clinical features, row-order aligned with the embeddings generated
+    # from X_train_bal, kept for traceability of predictions back to the original/synthetic record.
     X_train_bal.reset_index(drop=True).to_csv(
         os.path.join(dirs["preprocessing"], "X_train_raw.csv"), index=False
     )
 
-    return X_train_bal, y_train_bal
+    return X_train_bal.reset_index(drop=True), y_train_bal.reset_index(drop=True)
 
-
-
-#preparation functions: impute, balance, encode data, save preprocessed data
 
 def impute_raw(X, num_cols, cat_cols):
     X = X.copy()
@@ -90,33 +72,3 @@ def balance_classes(X, y, cat_cols):
     smote_nc = SMOTENC(categorical_features=cat_idx, random_state=42)
     X_res, y_res = smote_nc.fit_resample(X, y)
     return X_res, y_res
-
-def build_encoder(X, y, num_cols, cat_cols):
-    numeric_transformer = StandardScaler()
-    categorical_transformer = OneHotEncoder(handle_unknown='ignore')
-
-    preprocessor = ColumnTransformer(
-        transformers=[
-            ('num', numeric_transformer, num_cols),
-            ('cat', categorical_transformer, cat_cols)
-        ]
-    )
-
-    return preprocessor.fit(X, y)
-
-def data_processed(X_train, y_train, preprocessor, num_cols, cat_cols):
-    X_train_emb = preprocessor.transform(X_train)
-    if hasattr(X_train_emb, "toarray"):
-        X_train_emb = X_train_emb.toarray()
-    num_features = num_cols
-    cat_features = list(
-        preprocessor.named_transformers_['cat'].get_feature_names_out(cat_cols)
-    )
-    feature_names = num_features + cat_features
-    X_train_emb_df = pd.DataFrame(X_train_emb, columns=feature_names)
-    X_train_emb_df['target'] = np.asarray(y_train)
-    return X_train_emb_df
-
-def save_data_processed(X_train_emb_df, preprocessing_dir):
-    np.save(os.path.join(preprocessing_dir, "preprocessed_data.npy"), X_train_emb_df.values)
-    np.save(os.path.join(preprocessing_dir, "preprocessed_labels.npy"), X_train_emb_df['target'].values)
