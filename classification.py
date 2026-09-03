@@ -28,7 +28,9 @@ def training_classifier(dataset="heart_disease"):
             y_score = logisticReg.predict_proba(X_val)[:, 1]
             # choose optimal threshold
             precision, recall, thresholds = precision_recall_curve(y_val, y_score)
-            f1_scores = 2 * (precision * recall) / (precision + recall + 1e-6)
+            # precision/recall have one more point than thresholds (the last point is the
+            # threshold-less recall=0 edge), so drop it before indexing into thresholds.
+            f1_scores = 2 * (precision[:-1] * recall[:-1]) / (precision[:-1] + recall[:-1] + 1e-6)
             best_idx = f1_scores.argmax()
             tau = thresholds[best_idx]
             # prediction with optimized threshold

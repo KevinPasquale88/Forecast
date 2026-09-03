@@ -185,18 +185,18 @@ def process_model(model, texts, labels, embeddings_dir):
     file_lab = os.path.join(embeddings_dir, model['filename_label'])
     try:
         print(f"\n=== Processing {name} ===")
-        
+
         if model["type"] == "ollama":
             embeddings = generate_embeddings_batch(name, texts)
         elif model["type"] == "huggingface":
             embeddings = generate_embeddings_hf(texts, name)
-        
+
         save_embeddings_to_npy(embeddings, file_emb)
         save_labels_to_npy(labels, file_lab)
         print(f"[OK] Saved embeddings → {file_emb}")
         print(f"[OK] Saved labels → {file_lab}")
     except Exception as e:
-        print(f"[ERROR] Model {name}: {e}")
+        raise RuntimeError(f"Embedding generation failed for model '{name}': {e}") from e
 
 def generate_all_embeddings(texts, labels, embeddings_dir, max_workers=3):
     print(f"\nRunning embedding generation for {len(models_all)} models...")
