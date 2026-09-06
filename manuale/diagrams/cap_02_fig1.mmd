@@ -1,0 +1,7 @@
+flowchart LR
+    A["Dati etichettati\n(X, y)"] --> B["Addestramento\nlogisticReg.fit(X_train, y_train)"]
+    B --> C["Modello addestrato\n(parametri fissati)"]
+    C --> D["Validazione\npredict_proba(X_val) confrontato con y_val"]
+    D --> E{"Il modello\ngeneralizza bene?"}
+    E -- ricomincia con altri dati/iperparametri --> B
+    E -- sì --> F["Inferenza\nrecord nuovo, etichetta ignota\n(solo su branch chatbot)"]
