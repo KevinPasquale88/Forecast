@@ -1,0 +1,10 @@
+flowchart TB
+    subgraph Pool["ThreadPoolExecutor(max_workers=3)"]
+        T1["Thread 1\nprocess_model(e5-base)"]
+        T2["Thread 2\nprocess_model(gte-base)"]
+        T3["Thread 3\nprocess_model(bioclinicalbert)"]
+    end
+    T1 -->|acquisisce| S["_ollama_semaphore\n(1 permesso)"]
+    T2 -.attende.-> S
+    T3 -->|nessun semaforo:\nHuggingFace, non Ollama| HF["sentence_transformers.encode()"]
+    S -->|rilasciato dopo la chiamata| T1

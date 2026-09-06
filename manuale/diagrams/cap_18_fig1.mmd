@@ -1,0 +1,34 @@
+sequenceDiagram
+    participant U as Utente
+    participant M as main.py
+    participant F as function.py
+    participant P as preprocessing.py
+    participant E as embedding.py
+    participant C as classification.py
+    participant V as evaluation.py
+    participant EA as error_analysis.py
+    participant S as statisticaltest.py
+    participant R as generatereport.py
+    participant D as "datas/ dataset /"
+
+    U->>M: python main.py --dataset heart_disease
+    M->>F: get_output_dirs("heart_disease")
+    F-->>M: dirs (5 percorsi di cartella)
+    M->>F: delete_files_*(dirs[...]) ×4
+    F->>D: cancella i file della run precedente
+    M->>P: preprocessing_data(dataset)
+    P->>D: salva preprocessing/*.npy, X_train_raw.csv
+    P-->>M: X, y (in memoria)
+    M->>E: embeddings(X, y, dataset)
+    E->>D: salva embeddings/*.npy (7 modelli)
+    M->>C: training_classifier(dataset)
+    C->>D: rilegge embeddings/, salva results/*.npy, model_performance.csv
+    M->>V: evaluate_results(dataset)
+    V->>D: rilegge results/, salva boot_*.npy, grafici, encoder_comparison_summary.csv
+    M->>EA: analyze_errors(dataset)
+    EA->>D: rilegge results/ e preprocessing/X_train_raw.csv, salva CSV di errore
+    M->>S: test_statistical_tests(dataset)
+    S->>D: rilegge results/boot_*.npy, salva 3 CSV di confronto
+    M->>R: generate_report(dataset)
+    R->>D: rilegge tutto results/, salva reports/report.md
+    R-->>U: report.md pronto

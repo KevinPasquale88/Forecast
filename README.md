@@ -101,7 +101,7 @@ Full details on origin, features, ethics, and limitations for both datasets are 
 4. Install and start Ollama, then pull the general-purpose models used by the pipeline (`models_ollama` in `function.py`):
    ```bash
    ollama serve &
-   ollama pull yxchia/multilingual-e5-base
+   ollama pull jeffh/intfloat-e5-base-v2:q8_0
    ollama pull twwch/m3e-base
    ollama pull zyw0605688/gte-large-zh
    ollama pull jeffh/intfloat-multilingual-e5-large-instruct:q8_0

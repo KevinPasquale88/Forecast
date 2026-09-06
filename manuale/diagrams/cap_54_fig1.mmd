@@ -1,0 +1,15 @@
+sequenceDiagram
+    participant U as Utente (Telegram/Streamlit)
+    participant CB as chatbot_core.py
+    participant EMB as embedding.py (riusato)
+    participant MOD as SentenceTransformer + LogisticRegression
+
+    U->>CB: Risposte alle domande, una alla volta
+    CB->>CB: ConversationSession accumula answers
+    Note over CB: Al completamento
+    CB->>EMB: record_to_text_*(answers)
+    EMB-->>CB: Frase in linguaggio naturale
+    CB->>MOD: encode(frase) poi predict_proba(embedding)
+    MOD-->>CB: Probabilità stimata
+    CB->>CB: Confronto con tau (da model_performance.csv)
+    CB-->>U: Esito + disclaimer esplicito

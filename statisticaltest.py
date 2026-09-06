@@ -7,6 +7,34 @@ from scipy.stats import ttest_rel
 from scipy.stats import wilcoxon
 from function import get_output_dirs, models_all
 
+
+def _benjamini_hochberg(p_values):
+    """Benjamini-Hochberg adjusted p-values (controls the false discovery rate), same order as
+    the input. With 21 pairwise comparisons per metric (C(7,2) for 7 models) and no correction,
+    some raw p-values fall below 0.05 by chance alone even if nothing real is going on — this
+    column flags which comparisons remain significant once that is accounted for, without
+    removing the original, uncorrected p-values (see docs/CHANGES.md)."""
+    p = np.asarray(p_values, dtype=float)
+    n = len(p)
+    if n == 0:
+        return p
+    order = np.argsort(p)
+    ranked = p[order]
+    adjusted = ranked * n / np.arange(1, n + 1)
+    adjusted = np.minimum.accumulate(adjusted[::-1])[::-1]  # enforce monotonicity by rank
+    adjusted = np.clip(adjusted, 0, 1)
+    result = np.empty(n)
+    result[order] = adjusted
+    return result
+
+
+def _add_bh_columns(df):
+    if len(df) == 0:
+        return df
+    df["p_value_bh"] = np.round(_benjamini_hochberg(df["p_value"].values), 4)
+    df["significant_bh"] = (df["p_value_bh"] < 0.05).astype(int).astype(str)
+    return df
+
 def test_statistical_tests(dataset="heart_disease"):
     dirs = get_output_dirs(dataset)
     metrics = ["acc", "f1", "auc"]
@@ -57,11 +85,13 @@ def test_statistical_tests(dataset="heart_disease"):
                     "significant": "1" if p_t < 0.05 else "0"
                 })
 
-    # Salva CSV
-    pd.DataFrame(wilcoxon_results).to_csv(
+    # Salva CSV (p_value_bh / significant_bh: Benjamini-Hochberg correction across all pairwise
+    # comparisons of this test type, in addition to — not instead of — the raw p_value/significant
+    # columns already here)
+    _add_bh_columns(pd.DataFrame(wilcoxon_results)).to_csv(
         os.path.join(dirs["results"], "wilcoxon_comparison.csv"), index=False
     )
-    pd.DataFrame(ttest_results).to_csv(
+    _add_bh_columns(pd.DataFrame(ttest_results)).to_csv(
         os.path.join(dirs["results"], "ttest_comparison.csv"), index=False
     )
     test_delong(dirs)
@@ -119,6 +149,6 @@ def test_delong(dirs):
                 f"{'✅' if p < 0.05 else '❌'}"
             )
 
-    df_delong = pd.DataFrame(delong_results)
+    df_delong = _add_bh_columns(pd.DataFrame(delong_results))
     df_delong.to_csv(os.path.join(dirs["results"], "delong_comparison.csv"), index=False)
     print("\n✅ DeLong test completato → delong_comparison.csv")

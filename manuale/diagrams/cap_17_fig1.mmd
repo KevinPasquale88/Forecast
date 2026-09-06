@@ -1,0 +1,44 @@
+flowchart TB
+    subgraph Input["Dati grezzi (sola lettura)"]
+        DS1["datasets/heart+disease/\n4 file .data"]
+        DS2["datasets/diabetes+130.../\ndiabetic_data.csv"]
+    end
+
+    subgraph Pipeline["Le sette fasi orchestrate da main.py"]
+        direction TB
+        P1["1. preprocessing.py\npreprocessing_data()"]
+        P2["2. embedding.py\nembeddings()"]
+        P3["3. classification.py\ntraining_classifier()"]
+        P4["4. evaluation.py\nevaluate_results()"]
+        P5["5. error_analysis.py\nanalyze_errors()"]
+        P6["6. statisticaltest.py\ntest_statistical_tests()"]
+        P7["7. generatereport.py\ngenerate_report()"]
+        P1 -->|"X, y in memoria"| P2
+        P2 -.->|"file .npy su disco"| P3
+        P3 -.->|"file .npy su disco"| P4
+        P3 -.->|"file .npy/.csv su disco"| P5
+        P4 -.->|"file .npy su disco"| P6
+        P6 -.->|"file .csv su disco"| P7
+        P4 -.->|"file .csv su disco"| P7
+        P5 -.->|"file .csv su disco"| P7
+    end
+
+    subgraph Hub["function.py — configurazione e utility condivise"]
+        F["models_all, get_output_dirs(),\nfunzioni di plotting, delete_files_*"]
+    end
+
+    subgraph Output["datas/&lt;dataset&gt;/"]
+        O1["preprocessing/"]
+        O2["embeddings/"]
+        O3["results/"]
+        O4["graphics/"]
+        O5["reports/"]
+    end
+
+    DS1 & DS2 --> P1
+    Hub -.->|"importato da tutti\ne sette i moduli"| Pipeline
+    P1 --> O1
+    P2 --> O2
+    P3 & P4 & P5 & P6 --> O3
+    P4 --> O4
+    P7 --> O5

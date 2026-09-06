@@ -9,6 +9,8 @@ __pycache__/
 dist
 build
 *.log
+.DS_Store
+.pytest_cache/
 datas/diabetes130/embeddings/gte_large_embeddings.npy
 datas/diabetes130/embeddings/e5_large_embeddings.npy
 .claude

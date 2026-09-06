@@ -1,0 +1,30 @@
+---
+title: "Forecast --- Manuale Completo"
+lang: it
+documentclass: book
+papersize: a4
+fontsize: 11pt
+geometry: margin=2.5cm
+toc: true
+toc-depth: 3
+numbersections: false
+colorlinks: true
+linkcolor: black
+citecolor: black
+urlcolor: blue
+toccolor: black
+highlight-style: tango
+header-includes:
+  - \usepackage{fancyhdr}
+  - \pagestyle{fancy}
+  - \fancyhf{}
+  - \fancyhead[LE,RO]{\thepage}
+  - \fancyhead[RE]{\nouppercase{\leftmark}}
+  - \fancyhead[LO]{\nouppercase{\rightmark}}
+  - \usepackage{fvextra}
+  - \DefineVerbatimEnvironment{Highlighting}{Verbatim}{breaklines,breakanywhere,fontsize=\small}
+  - \usepackage{etoolbox}
+  - \makeatletter
+  - \patchcmd{\ttlh@hang}{\parindent\z@}{\parindent\z@\raggedright}{}{}
+  - \makeatother
+---
