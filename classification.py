@@ -2,9 +2,9 @@ import os
 import numpy as np
 import pandas as pd
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import accuracy_score, f1_score, precision_recall_curve, roc_auc_score
-from sklearn.model_selection import StratifiedKFold
-from function import models_all, plot_metric_comparison, results, get_output_dirs
+from sklearn.metrics import accuracy_score, f1_score, roc_auc_score
+from sklearn.model_selection import StratifiedKFold, train_test_split
+from function import models_all, plot_metric_comparison, results, get_output_dirs, optimal_f1_threshold
 
 def training_classifier(dataset="heart_disease"):
     dirs = get_output_dirs(dataset)
@@ -20,19 +20,26 @@ def training_classifier(dataset="heart_disease"):
         all_y_true   = []
         all_val_idx  = []
         for train_idx, val_idx in kf.split(X, y):
-            X_train, X_val = X[train_idx], X[val_idx]
-            y_train, y_val = y[train_idx], y[val_idx]
+            X_train_full, X_val = X[train_idx], X[val_idx]
+            y_train_full, y_val = y[train_idx], y[val_idx]
+
+            # Calibrate the decision threshold on a slice carved out of this fold's own training
+            # partition, never on y_val: choosing tau by maximizing F1 on the same labels the
+            # fold's accuracy/F1 are then reported on was optimistic (a mild, threshold-only form
+            # of leakage — the classifier itself never saw y_val, only tau did; see
+            # docs/CHANGES.md). The classifier is now fit on 80% of the fold's training data
+            # instead of all of it, trading a little training data for a threshold that owes
+            # nothing to the fold it is evaluated on.
+            X_train, X_calib, y_train, y_calib = train_test_split(
+                X_train_full, y_train_full, test_size=0.2, random_state=42, stratify=y_train_full
+            )
             # train
             logisticReg.fit(X_train, y_train)
-            # positive probabilities
+            # choose optimal threshold on the calibration slice, not on X_val/y_val
+            calib_score = logisticReg.predict_proba(X_calib)[:, 1]
+            tau = optimal_f1_threshold(y_calib, calib_score)
+            # positive probabilities on the untouched validation fold
             y_score = logisticReg.predict_proba(X_val)[:, 1]
-            # choose optimal threshold
-            precision, recall, thresholds = precision_recall_curve(y_val, y_score)
-            # precision/recall have one more point than thresholds (the last point is the
-            # threshold-less recall=0 edge), so drop it before indexing into thresholds.
-            f1_scores = 2 * (precision[:-1] * recall[:-1]) / (precision[:-1] + recall[:-1] + 1e-6)
-            best_idx = f1_scores.argmax()
-            tau = thresholds[best_idx]
             # prediction with optimized threshold
             y_pred = (y_score >= tau).astype(int)
             # metrics

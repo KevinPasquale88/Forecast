@@ -11,12 +11,12 @@ from ollama import Client
 from sentence_transformers import SentenceTransformer
 from function import get_output_dirs, models_all
 
-def embeddings(X, y, dataset="heart_disease"):
+def embeddings(X, y, dataset="heart_disease", split="train"):
     dirs = get_output_dirs(dataset)
     record_to_text = record_to_text_diabetes130 if dataset == "diabetes130" else record_to_text_heart_disease
     texts = [record_to_text(r) for _, r in X.iterrows()]
     #embedding generation
-    generate_all_embeddings(texts, np.asarray(y), dirs["embeddings"])
+    generate_all_embeddings(texts, np.asarray(y), dirs["embeddings"], split=split)
 
 
 # Standard UCI Heart Disease attribute encodings
@@ -40,21 +40,36 @@ def _fmt_bool(value, true_label, false_label):
         return "not recorded"
     return true_label if int(round(float(value))) == 1 else false_label
 
+def _masked(row, col, formatter):
+    """Apply `formatter` to row[col], unless a "<col>_missing" indicator column (added by
+    preprocessing.py for columns missing too often to impute honestly, see
+    MISSING_INDICATOR_THRESHOLD there) marks this value as imputed — or, for a synthetic
+    SMOTENC record, interpolated mostly from imputed neighbours. In that case report it as "not
+    recorded", exactly like a genuinely missing value, instead of writing a fabricated number or
+    category into the record as if it had been observed. A row with no such indicator column
+    (because that field was never missing often enough to need one) falls through to `formatter`
+    unchanged, so this is safe to apply to every field uniformly."""
+    flag_col = f"{col}_missing"
+    if flag_col in row.index and pd.notna(row[flag_col]) and int(round(float(row[flag_col]))) == 1:
+        return "not recorded"
+    return formatter(row[col])
+
+
 def record_to_text_heart_disease(row):
-    sex = _fmt_bool(row["sex"], "Male", "Female")
+    sex = _masked(row, "sex", lambda v: _fmt_bool(v, "Male", "Female"))
     parts = [
-        f"{sex} patient, {_fmt_num(row['age'], ndigits=0)} years old",
-        f"chest pain type: {_fmt_cat(row['cp'], CP_LABELS)}",
-        f"resting blood pressure: {_fmt_num(row['trestbps'], ' mm Hg', ndigits=0)}",
-        f"serum cholesterol: {_fmt_num(row['chol'], ' mg/dl', ndigits=0)}",
-        f"fasting blood sugar > 120 mg/dl: {_fmt_bool(row['fbs'], 'yes', 'no')}",
-        f"resting electrocardiographic results: {_fmt_cat(row['restecg'], RESTECG_LABELS)}",
-        f"maximum heart rate achieved: {_fmt_num(row['thalach'], ndigits=0)}",
-        f"exercise-induced angina: {_fmt_bool(row['exang'], 'yes', 'no')}",
-        f"ST depression induced by exercise: {_fmt_num(row['oldpeak'])}",
-        f"slope of the peak exercise ST segment: {_fmt_cat(row['slope'], SLOPE_LABELS)}",
-        f"number of major vessels colored by fluoroscopy: {_fmt_num(row['ca'], ndigits=0)}",
-        f"thalassemia: {_fmt_cat(row['thal'], THAL_LABELS)}",
+        f"{sex} patient, {_masked(row, 'age', lambda v: _fmt_num(v, ndigits=0))} years old",
+        f"chest pain type: {_masked(row, 'cp', lambda v: _fmt_cat(v, CP_LABELS))}",
+        f"resting blood pressure: {_masked(row, 'trestbps', lambda v: _fmt_num(v, ' mm Hg', ndigits=0))}",
+        f"serum cholesterol: {_masked(row, 'chol', lambda v: _fmt_num(v, ' mg/dl', ndigits=0))}",
+        f"fasting blood sugar > 120 mg/dl: {_masked(row, 'fbs', lambda v: _fmt_bool(v, 'yes', 'no'))}",
+        f"resting electrocardiographic results: {_masked(row, 'restecg', lambda v: _fmt_cat(v, RESTECG_LABELS))}",
+        f"maximum heart rate achieved: {_masked(row, 'thalach', lambda v: _fmt_num(v, ndigits=0))}",
+        f"exercise-induced angina: {_masked(row, 'exang', lambda v: _fmt_bool(v, 'yes', 'no'))}",
+        f"ST depression induced by exercise: {_masked(row, 'oldpeak', _fmt_num)}",
+        f"slope of the peak exercise ST segment: {_masked(row, 'slope', lambda v: _fmt_cat(v, SLOPE_LABELS))}",
+        f"number of major vessels colored by fluoroscopy: {_masked(row, 'ca', lambda v: _fmt_num(v, ndigits=0))}",
+        f"thalassemia: {_masked(row, 'thal', lambda v: _fmt_cat(v, THAL_LABELS))}",
     ]
     return ", ".join(parts)
 
@@ -63,24 +78,24 @@ def _fmt_raw(value):
 
 def record_to_text_diabetes130(row):
     parts = [
-        f"{_fmt_raw(row['gender'])} patient, age range {_fmt_raw(row['age'])}",
-        f"race: {_fmt_raw(row['race'])}",
-        f"admission type id: {_fmt_raw(row['admission_type_id'])}",
-        f"discharge disposition id: {_fmt_raw(row['discharge_disposition_id'])}",
-        f"admission source id: {_fmt_raw(row['admission_source_id'])}",
-        f"time in hospital: {_fmt_raw(row['time_in_hospital'])} days",
-        f"number of lab procedures: {_fmt_raw(row['num_lab_procedures'])}",
-        f"number of procedures: {_fmt_raw(row['num_procedures'])}",
-        f"number of medications: {_fmt_raw(row['num_medications'])}",
-        f"outpatient visits in prior year: {_fmt_raw(row['number_outpatient'])}",
-        f"emergency visits in prior year: {_fmt_raw(row['number_emergency'])}",
-        f"inpatient visits in prior year: {_fmt_raw(row['number_inpatient'])}",
-        f"number of diagnoses: {_fmt_raw(row['number_diagnoses'])}",
-        f"max glucose serum test result: {_fmt_raw(row['max_glu_serum'])}",
-        f"A1C test result: {_fmt_raw(row['A1Cresult'])}",
-        f"insulin therapy: {_fmt_raw(row['insulin'])}",
-        f"medication changed during encounter: {_fmt_raw(row['change'])}",
-        f"prescribed diabetes medication: {_fmt_raw(row['diabetesMed'])}",
+        f"{_masked(row, 'gender', _fmt_raw)} patient, age range {_masked(row, 'age', _fmt_raw)}",
+        f"race: {_masked(row, 'race', _fmt_raw)}",
+        f"admission type id: {_masked(row, 'admission_type_id', _fmt_raw)}",
+        f"discharge disposition id: {_masked(row, 'discharge_disposition_id', _fmt_raw)}",
+        f"admission source id: {_masked(row, 'admission_source_id', _fmt_raw)}",
+        f"time in hospital: {_masked(row, 'time_in_hospital', _fmt_raw)} days",
+        f"number of lab procedures: {_masked(row, 'num_lab_procedures', _fmt_raw)}",
+        f"number of procedures: {_masked(row, 'num_procedures', _fmt_raw)}",
+        f"number of medications: {_masked(row, 'num_medications', _fmt_raw)}",
+        f"outpatient visits in prior year: {_masked(row, 'number_outpatient', _fmt_raw)}",
+        f"emergency visits in prior year: {_masked(row, 'number_emergency', _fmt_raw)}",
+        f"inpatient visits in prior year: {_masked(row, 'number_inpatient', _fmt_raw)}",
+        f"number of diagnoses: {_masked(row, 'number_diagnoses', _fmt_raw)}",
+        f"max glucose serum test result: {_masked(row, 'max_glu_serum', _fmt_raw)}",
+        f"A1C test result: {_masked(row, 'A1Cresult', _fmt_raw)}",
+        f"insulin therapy: {_masked(row, 'insulin', _fmt_raw)}",
+        f"medication changed during encounter: {_masked(row, 'change', _fmt_raw)}",
+        f"prescribed diabetes medication: {_masked(row, 'diabetesMed', _fmt_raw)}",
     ]
     return ", ".join(parts)
 
@@ -179,12 +194,22 @@ def generate_embeddings_hf(texts, model_name):
     
     return embeddings
 
-def process_model(model, texts, labels, embeddings_dir):
+def _split_filename(filename, split):
+    """Insert a "_<split>" suffix before the extension, unless split is "train" (kept as the
+    original, unsuffixed name so existing training-embedding filenames — and anything that
+    already depends on them — are unaffected)."""
+    if split == "train":
+        return filename
+    stem, ext = os.path.splitext(filename)
+    return f"{stem}_{split}{ext}"
+
+
+def process_model(model, texts, labels, embeddings_dir, split="train"):
     name = model["name"]
-    file_emb = os.path.join(embeddings_dir, model['filename'])
-    file_lab = os.path.join(embeddings_dir, model['filename_label'])
+    file_emb = os.path.join(embeddings_dir, _split_filename(model['filename'], split))
+    file_lab = os.path.join(embeddings_dir, _split_filename(model['filename_label'], split))
     try:
-        print(f"\n=== Processing {name} ===")
+        print(f"\n=== Processing {name} ({split}) ===")
 
         if model["type"] == "ollama":
             embeddings = generate_embeddings_batch(name, texts)
@@ -196,14 +221,14 @@ def process_model(model, texts, labels, embeddings_dir):
         print(f"[OK] Saved embeddings → {file_emb}")
         print(f"[OK] Saved labels → {file_lab}")
     except Exception as e:
-        raise RuntimeError(f"Embedding generation failed for model '{name}': {e}") from e
+        raise RuntimeError(f"Embedding generation failed for model '{name}' ({split}): {e}") from e
 
-def generate_all_embeddings(texts, labels, embeddings_dir, max_workers=3):
-    print(f"\nRunning embedding generation for {len(models_all)} models...")
+def generate_all_embeddings(texts, labels, embeddings_dir, max_workers=3, split="train"):
+    print(f"\nRunning embedding generation for {len(models_all)} models ({split} split)...")
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = []
         for m in models_all:
-            futures.append(executor.submit(process_model, m, texts, labels, embeddings_dir))
+            futures.append(executor.submit(process_model, m, texts, labels, embeddings_dir, split))
         for f in futures:
             f.result()
-    print("\nAll embeddings generated successfully!")
+    print(f"\nAll embeddings generated successfully for the {split} split!")

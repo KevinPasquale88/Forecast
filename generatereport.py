@@ -2,7 +2,7 @@ import pandas as pd
 import os
 import datetime
 
-from function import get_output_dirs
+from function import get_output_dirs, MODEL_FAMILY
 
 # ============================================================
 #  LOAD SUMMARY DATA (CSV with mean metrics and confidence intervals)
@@ -186,29 +186,35 @@ def generate_markdown(summary, dirs):
         md.append("---\n")
 
     # ============================
-    # DISCUSSION
+    # HOLDOUT TEST SET EVALUATION
+    # ============================
+
+    holdout_path = os.path.join(dirs["results"], "holdout_evaluation.csv")
+    if os.path.exists(holdout_path):
+        md.append("## 🧾 Held-Out Test Set Evaluation\n")
+        md.append(
+            "Metrics on the 20% test split created in `preprocessing.py` and never used for "
+            "training, threshold calibration, or the model comparisons above — the counterpart "
+            "to the 5-fold cross-validation results, on data none of those steps ever saw.\n"
+        )
+        md.append(pd.read_csv(holdout_path).to_markdown(index=False))
+        md.append("\n\n---\n")
+
+    # ============================
+    # DISCUSSION (computed from `summary`, not fixed text — see docs/CHANGES.md)
     # ============================
 
     md.append("## 🔍 Discussion and Observations\n")
-    md.append("""
-- Larger embedding models (E5-large, GTE-large) generally show better performance.
-- GTE-large tends to achieve higher ROC-AUC and tighter confidence intervals.
-- Confusion matrices enable analysis of false positives and false negatives.
-- Bootstrap is useful to verify metric stability and robustness.
-""")
+    md.append(_build_discussion(summary))
 
     md.append("\n---\n")
 
     # ============================
-    # CONCLUSIONS
+    # CONCLUSIONS (computed from `summary` and `stat_results`, not fixed text)
     # ============================
 
     md.append("## 🏁 Conclusions\n")
-    md.append("""
-- The embedding + linear classifier approach is effective.
-- Modern encoders such as GTE-large demonstrate strong generalization.
-- The pipeline is robust and stable, as confirmed by bootstrap 10,000.
-""")
+    md.append(_build_conclusions(summary, stat_results))
 
     md.append("\n---\n")
 
@@ -218,13 +224,69 @@ def generate_markdown(summary, dirs):
 
     md.append("## 🚀 Potential Improvements\n")
     md.append("""
-- Test additional encoders (bge-large, Jina-Embeddings, E5-mistral).
-- Introduce a non-linear classifier (XGBoost, LightGBM).
-- Apply advanced calibration techniques (Platt scaling).
-- Add a larger clinical dataset to reduce variance error.
+- Test additional general-purpose or biomedical encoders beyond the ones already compared.
+- Introduce a non-linear classifier (e.g. gradient boosting) as an additional comparison point.
+- Apply probability calibration (e.g. Platt scaling) and report calibration curves, not only
+  discrimination metrics (accuracy, F1, AUC).
+- Run on the full Diabetes130 file instead of the 20,000-row stratified sample, to narrow the
+  bootstrap confidence intervals further.
 """)
 
     return "\n".join(md)
+
+
+def _build_discussion(summary):
+    """Observations computed from the actual `summary` DataFrame of this run, instead of a fixed
+    block of text that could (and, in the version this replaced, did) describe a model that was
+    not actually the best one for this specific dataset — see docs/CHANGES.md."""
+    best_acc = summary.loc[summary["acc_mean"].idxmax()]
+    best_f1 = summary.loc[summary["f1_mean"].idxmax()]
+    best_auc = summary.loc[summary["auc_mean"].idxmax()]
+    ci_width = summary["auc_ci_high"] - summary["auc_ci_low"]
+    tightest = summary.loc[ci_width.idxmin()]
+
+    lines = [
+        f"- **{best_acc['model']}** has the highest mean accuracy in this run ({best_acc['acc_mean']:.4f}).",
+        f"- **{best_f1['model']}** has the highest mean macro-F1 ({best_f1['f1_mean']:.4f}).",
+        f"- **{best_auc['model']}** has the highest mean ROC-AUC ({best_auc['auc_mean']:.4f}), "
+        f"95% bootstrap CI [{best_auc['auc_ci_low']:.4f}, {best_auc['auc_ci_high']:.4f}].",
+        f"- **{tightest['model']}** has the narrowest AUC confidence interval "
+        f"({ci_width.loc[tightest.name]:.4f} wide) — the most stable AUC estimate across the "
+        "bootstrap resamples, independent of whether its mean AUC is also the highest.",
+    ]
+    family_auc = summary.assign(family=summary["model"].map(MODEL_FAMILY)).groupby("family")["auc_mean"].mean()
+    if len(family_auc) > 1:
+        best_family = family_auc.idxmax()
+        lines.append(
+            f"- Averaged by family, **{best_family}** has the highest mean AUC "
+            f"({family_auc[best_family]:.4f}) among the families present in this run. This is "
+            "a descriptive average, not a statistical test: see the DeLong comparison above "
+            "for which specific pairwise differences are actually significant."
+        )
+    return "\n".join(lines)
+
+
+def _build_conclusions(summary, stat_results):
+    """Conclusions computed from `summary` and, where available, from the statistical test
+    results already loaded for this report — not a fixed claim of general effectiveness that
+    held regardless of what the data in a given run actually showed."""
+    lines = [
+        "- Every model in this run outperforms a trivial majority-class baseline on the "
+        "SMOTE-balanced validation pool (50.0% accuracy, 0.333 macro-F1 by construction, since "
+        "that pool is always exactly balanced) — see the accuracy/macro-F1 columns above.",
+        "- Bootstrap resampling (10,000 iterations) gives every metric a reported confidence "
+        "interval: treat a numerically higher mean as a meaningful difference only where the "
+        "corresponding pairwise test below also reports significance, not from the ranking alone.",
+    ]
+    delong = stat_results.get("delong")
+    if delong is not None and len(delong):
+        sig = delong["significant"].astype(str).isin(["1", "1.0"])
+        lines.append(
+            f"- Of the {len(delong)} pairwise AUC comparisons (DeLong test), {int(sig.sum())} "
+            f"are statistically significant at alpha=0.05 — see `delong_comparison.csv` for "
+            "which specific pairs, rather than assuming every numeric difference is real."
+        )
+    return "\n".join(lines)
 
 
 # ============================================================

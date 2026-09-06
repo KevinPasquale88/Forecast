@@ -2,7 +2,7 @@ import os
 import numpy as np
 import pandas as pd
 from umap import UMAP
-from sklearn.metrics import confusion_matrix, roc_curve, roc_auc_score
+from sklearn.metrics import confusion_matrix, roc_curve, roc_auc_score, precision_recall_curve
 from sklearn.model_selection import train_test_split
 import seaborn as sns
 import matplotlib.pyplot as plt
@@ -64,12 +64,12 @@ FAMILY_COLORS = {
 FIGSIZE_STD = (7, 5)
 FIGSIZE_WIDE = (9, 5.5)
 
-results = {
-    "e5-base":    {"acc": [], "f1": [], "auc": [], "tau": []},
-    "e5-large":   {"acc": [], "f1": [], "auc": [], "tau": []},
-    "gte-large":  {"acc": [], "f1": [], "auc": [], "tau": []},
-    "gte-base":  {"acc": [], "f1": [], "auc": [], "tau": []}
-}
+# Built from models_all itself, not listed by hand: previously this only pre-populated 4 of
+# the 7 configured models, leaving the other 3 to be created ad hoc by classification.py's own
+# assignment (harmless in practice, since Python dicts create missing keys silently, but the
+# stale initial content no longer matched the real model list). Now it always has exactly one
+# entry per model actually configured in models_all, so the two can never drift apart again.
+results = {m["model_name"]: {"acc": [], "f1": [], "auc": [], "tau": []} for m in models_all}
 
 datasets = ["heart_disease", "diabetes130"]
 
@@ -174,6 +174,23 @@ def get_model_palette(model_names):
     return palette
 
 
+def optimal_f1_threshold(y_true, y_score):
+    """Decision threshold that maximizes macro-oriented F1 for (y_true, y_score).
+
+    Shared by classification.py (per-fold threshold) and holdout_evaluation.py (final
+    threshold), so the same rule is implemented once instead of copy-pasted. The caller is
+    responsible for the labels passed in: they must never be the same labels a reported metric
+    is later computed on, or the choice of threshold leaks information from that evaluation back
+    into itself (see docs/CHANGES.md for the leakage this replaced).
+    """
+    precision, recall, thresholds = precision_recall_curve(y_true, y_score)
+    # precision/recall have one more point than thresholds (the last point is the
+    # threshold-less recall=0 edge), so drop it before indexing into thresholds.
+    f1_scores = 2 * (precision[:-1] * recall[:-1]) / (precision[:-1] + recall[:-1] + 1e-6)
+    best_idx = f1_scores.argmax()
+    return thresholds[best_idx]
+
+
 #delete files functions - each takes the dataset-specific folder to clean, so a rerun of
 #one dataset never touches another dataset's saved run
 def delete_files_embeddings(folder):
@@ -185,15 +202,21 @@ def delete_files_embeddings(folder):
             print(f"Successfully deleted file: {file_name}")
 
 def delete_files_preprocessing(folder):
-    pattern = "preprocessed"
+    # "preprocessed" alone used to miss X_train_raw.csv (never matched the pattern, even before
+    # this fix) and the newer X_test_raw.csv / y_test.npy: a failed run could leave any of these
+    # behind for the next run to silently pick up. All three patterns are matched now.
+    pattern_list = ["preprocessed", "_raw.csv", "y_test.npy"]
     for file_name in os.listdir(folder):
         full_path = os.path.join(folder, file_name)
-        if os.path.isfile(full_path) and pattern in file_name:
+        if os.path.isfile(full_path) and any(s in file_name for s in pattern_list):
             os.remove(full_path)
             print(f"Successfully deleted file: {file_name}")
 
 def delete_files_results(folder):
-    pattern_list = ["model_performance","_y_true", "_y_score", "_y_pred", "_val_idx", "BOXPLOT_metrics", "metric_comparison","encoder_comparison_summary", "MeanCI_metrics", "FamilyComparison_metrics", "error_summary", "hardest_cases", "false_positives", "false_negatives", "feature_deviation", "ErrorAnalysis"]
+    # wilcoxon/ttest/delong comparison CSVs were missing from this list before this fix: a
+    # previous run's statistical test output could survive a rerun where that phase was skipped
+    # or failed, silently mixing results from two different executions.
+    pattern_list = ["model_performance","_y_true", "_y_score", "_y_pred", "_val_idx", "BOXPLOT_metrics", "metric_comparison","encoder_comparison_summary", "MeanCI_metrics", "FamilyComparison_metrics", "error_summary", "hardest_cases", "false_positives", "false_negatives", "feature_deviation", "ErrorAnalysis", "holdout_evaluation", "wilcoxon_comparison", "ttest_comparison", "delong_comparison"]
     for file_name in os.listdir(folder):
         full_path = os.path.join(folder, file_name)
         if os.path.isfile(full_path) and any(s in file_name for s in pattern_list):
@@ -346,11 +369,18 @@ def plot_family_comparison(bootstrap_results, results_dir="datas/results"):
         for v in metrics["auc"]:
             rows.append([family, "AUC", v])
     df = pd.DataFrame(rows, columns=["Family", "Metric", "Value"])
-    family_order = [f for f in ["general-purpose", "biomedical", "biomedical-st"] if f in df["Family"].unique()]
+    present_families = list(df["Family"].unique())
+    # Preserve the canonical ordering for families already known to FAMILY_COLORS, but never
+    # silently drop a family just because it isn't listed there yet: appending any unrecognized
+    # family (with a grey fallback colour, matching get_model_palette's own fallback) keeps a
+    # newly added model family visible in this plot instead of vanishing from it without warning.
+    family_order = [f for f in FAMILY_COLORS if f in present_families]
+    family_order += [f for f in present_families if f not in family_order]
+    palette = {f: FAMILY_COLORS.get(f, "#888888") for f in family_order}
 
     fig, ax = plt.subplots(figsize=FIGSIZE_WIDE)
     sns.boxplot(data=df, x="Metric", y="Value", hue="Family", hue_order=family_order,
-                palette=FAMILY_COLORS, ax=ax, linewidth=0.9, fliersize=1.5)
+                palette=palette, ax=ax, linewidth=0.9, fliersize=1.5)
     ax.set_title("Model Family Comparison - Bootstrap Metric Distributions")
     ax.legend(title="Model family", bbox_to_anchor=(1.02, 1), loc="upper left", frameon=False, borderaxespad=0)
     save_figure(fig, os.path.join(results_dir, "FamilyComparison_metrics"))
