@@ -10,7 +10,7 @@ Questo capitolo prende il principio architetturale del capitolo 19.3 e lo trasfo
 
 ## 42.1 Dove si registra in `function.py`
 
-**[Fatto]** `generatereport.py:221` suggerisce esplicitamente, nel testo statico del report (capitolo 27.2), di provare "bge-large" come modello aggiuntivo — un suggerimento scritto nel codice del progetto stesso, mai realizzato. Usiamolo come esempio concreto per questo esercizio.
+**[Fatto]** La sezione "Potential Improvements" del report (`generatereport.py:225-233`, capitolo 27.3) suggerisce di provare encoder aggiuntivi oltre ai sette già confrontati — e una versione precedente di quel testo nominava esplicitamente "bge-large" come candidato, un suggerimento scritto nel codice del progetto stesso e mai realizzato. Usiamolo come esempio concreto per questo esercizio.
 
 **[Interpretazione]** Il primo passo, seguendo esattamente lo schema degli altri quattro modelli generalisti (`function.py:38-43`), sarebbe aggiungere una voce a `models_ollama`:
 ```python
@@ -28,7 +28,7 @@ models_ollama = [
 
 ## 42.2 Cosa fa la pipeline da sola
 
-**[Fatto]** Con questa sola modifica, `models_all` (`function.py:51`, l'unione di `models_ollama` e `models_medical`) diventa automaticamente una lista di otto elementi — e ogni fase che itera su `models_all` (`embeddings()`, `training_classifier()`, `evaluate_results()`, `analyze_errors()`, `test_statistical_tests()`) processerebbe l'ottavo modello **senza alcuna ulteriore modifica**, esattamente come mostrato al capitolo 19.3: nessuna di queste funzioni nomina un modello specifico per nome, tutte iterano genericamente sulla lista.
+**[Fatto]** Con questa sola modifica, `models_all` (`function.py:51`, l'unione di `models_ollama` e `models_medical`) diventa automaticamente una lista di otto elementi — e ogni fase che itera su `models_all` (`embeddings()`, `training_classifier()`, `evaluate_results()`, `analyze_errors()`, `test_statistical_tests()`, `evaluate_holdout()`) processerebbe l'ottavo modello **senza alcuna ulteriore modifica**, esattamente come mostrato al capitolo 19.3: nessuna di queste funzioni nomina un modello specifico per nome, tutte iterano genericamente sulla lista.
 
 **[Fatto]** Poiché `bge-large` appartiene a una famiglia già esistente (`"general-purpose"`), anche `get_model_palette()` (`function.py:162-174`, capitolo 20.3) gestirebbe la nuova voce automaticamente: la famiglia `general-purpose` passerebbe da 4 a 5 membri, e `sns.light_palette()` genererebbe semplicemente cinque sfumature invece di quattro, tutte ancora distinguibili.
 

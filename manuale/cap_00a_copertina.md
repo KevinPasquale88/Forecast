@@ -19,7 +19,7 @@
 
 \vspace{3cm}
 
-{\large Versione 1.0 --- 6 settembre 2026}
+{\large Versione 1.1 --- 10 settembre 2026}
 
 \vspace{4cm}
 
@@ -34,7 +34,7 @@
 
 \textbf{Forecast --- Manuale Completo}
 
-Versione 1.0, 6 settembre 2026
+Versione 1.1, 10 settembre 2026 --- aggiornata alla pipeline corretta dai fix di qualità (\texttt{docs/CHANGES.md}): test set trattenuto ora valutato (fase holdout), soglia calibrata su una fetta separata, indicatori di valore imputato nel testo generato, report calcolato dai dati, correzione di Benjamini-Hochberg, suite pytest. Tabelle e riferimenti \texttt{file:riga} riflettono le esecuzioni del 6 settembre 2026.
 
 \vspace{0.5cm}
 

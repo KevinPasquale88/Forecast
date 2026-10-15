@@ -43,7 +43,7 @@
 25. `error_analysis.py`: dall'errore statistico al caso clinico (25.1 ricostruire il record dall'indice di validazione; 25.2 "hardest cases"; 25.3 deviazione di feature)
 26. `statisticaltest.py`: tre test, tre garanzie diverse (26.1 Wilcoxon e t-test appaiato; 26.2 DeLong e `MLstatkit`; 26.3 perché tre test invece di uno)
 27. `generatereport.py`: l'ultimo miglio, e il suo limite più istruttivo (27.1 come si assembla un report Markdown da CSV/PNG; 27.2 il caso del testo narrativo statico; 27.3 come lo riscriveresti tu)
-28. `main.py`: l'orchestratore letto per ultimo apposta (28.1 le sette fasi in ordine; 28.2 il flag `--dataset` e il default; 28.3 cosa succederebbe ad aggiungere una fase 8)
+28. `main.py`: l'orchestratore letto per ultimo apposta (28.1 le otto fasi in ordine; 28.2 il flag `--dataset` e il default; 28.3 aggiungere una fase in più: l'esperimento è già stato fatto)
 
 ## Parte VI — I dati e la pipeline
 29. Il dataset UCI Heart Disease (29.1 origine e centri clinici; 29.2 schema delle 14 feature e valori mancanti mascherati da zero; 29.3 limiti noti)
@@ -73,17 +73,17 @@
 47. Confronto con un modello di riferimento banale (47.1 cos'è un baseline e perché serve alla tesi; 47.2 costruzione di un baseline sugli stessi fold; 47.3 il confronto numerico)
 
 ## Parte X — Test, debugging, qualità
-48. Lo stato attuale: nessun test automatico (48.1 conseguenze per l'affidabilità; 48.2 cosa testeresti per primo; 48.3 pytest vs. JUnit)
+48. Da "nessun test automatico" alla prima suite pytest (48.1 cosa significava l'assenza storica di test, e la suite introdotta dai fix; 48.2 cosa testare per primo, e cosa la suite reale ha scelto; 48.3 pytest vs. JUnit)
 49. Scrivere il primo test per questo progetto (49.1 test per `record_to_text_heart_disease`; 49.2 test per la soglia F1-ottima con dati sintetici; 49.3 mocking di disco/rete)
 50. Debugging e log in pratica (50.1 debugger Python vs. Java; 50.2 leggere i `print()` come log strutturati; 50.3 percorso guidato su un bug reale)
 
 ## Parte XI — Analisi critica
-51. Limiti metodologici del protocollo di valutazione (51.1 assenza di test set finale indipendente; 51.2 soglia ottimizzata sullo stesso fold; 51.3 il campionamento a 20.000 di Diabetes130)
+51. Limiti metodologici del protocollo di valutazione (51.1 il test set mai usato: individuato, corretto, e cosa ha rivelato; 51.2 la soglia ottimizzata sullo stesso fold: individuata e corretta; 51.3 il campionamento a 20.000 di Diabetes130: il limite che resta)
 52. Il caso del reporting automatico non aggiornato (52.1 confronto riga per riga dei due report reali; 52.2 perché è pericoloso in contesto clinico; 52.3 come si preverrebbe)
 53. Posizionamento rispetto allo stato dell'arte (53.1 tabellare→testo→embedding vs. classificazione tabellare diretta, "linear probing" su embedding congelati; 53.2 cosa NON prova questo progetto; 53.3 minacce alla validità: interna, esterna, di costrutto, statistica)
 
 ## Parte XII — Estensioni e lavori futuri
-54. Il chatbot clinico: cosa esiste già, non integrato (54.1 architettura di `chatbot_core.py`/Streamlit/Telegram sul branch `chatbot`; 54.2 cosa manca per l'integrazione pulita; 54.3 rischi di un chatbot di rischio clinico non validato)
+54. Il chatbot clinico: cosa esiste già, non integrato (54.1 architettura di `chatbot_core.py`/Streamlit/Telegram sul branch `chatbot`; 54.2 cosa manca per l'integrazione pulita; 54.3 rischi di un chatbot di rischio clinico non validato; 54.4 confronto con `inference.py`, la seconda implementazione dell'inferenza aggiunta su `master` stesso ma tenuta fuori dalla pipeline)
 55. Direzioni di sviluppo difendibili in sede di discussione (55.1 test set finale indipendente; 55.2 un classificatore non lineare come confronto; 55.3 calibrazione delle probabilità e reportistica generata dai dati)
 
 ## Parte XIII — Dal manuale alla tesi
@@ -93,7 +93,7 @@
 
 ## Appendici
 - A. Glossario generale (`app_A.md`) — dominio + statistica, non programmazione generale
-- B. Riferimento completo delle funzioni pubbliche (`app_B.md`) — tutti i 9 file di `master`
+- B. Riferimento completo delle funzioni pubbliche (`app_B.md`) — tutti i 10 file di `master`
 - C. Formulario (`app_C.md`) — tutte le formule del libro, numerate, con rimando al capitolo
 - D. Bibliografia annotata + `bibliografia.bib` (`app_D.md`) — affidabilità di ogni riferimento dichiarata
 - E. Zone d'ombra (`app_E.md`) — elenco completo delle domande aperte per il relatore

@@ -8,6 +8,7 @@ sequenceDiagram
     participant V as evaluation.py
     participant EA as error_analysis.py
     participant S as statisticaltest.py
+    participant H as holdout_evaluation.py
     participant R as generatereport.py
     participant D as "datas/ dataset /"
 
@@ -17,10 +18,12 @@ sequenceDiagram
     M->>F: delete_files_*(dirs[...]) ×4
     F->>D: cancella i file della run precedente
     M->>P: preprocessing_data(dataset)
-    P->>D: salva preprocessing/*.npy, X_train_raw.csv
+    P->>D: salva preprocessing/*.npy, X_train_raw.csv, X_test_raw.csv, y_test.npy
     P-->>M: X, y (in memoria)
     M->>E: embeddings(X, y, dataset)
-    E->>D: salva embeddings/*.npy (7 modelli)
+    E->>D: salva embeddings/*.npy (7 modelli, pool di training)
+    M->>E: embeddings(X_test, y_test, dataset, split="test")
+    E->>D: salva embeddings/*_test.npy (7 modelli, test set)
     M->>C: training_classifier(dataset)
     C->>D: rilegge embeddings/, salva results/*.npy, model_performance.csv
     M->>V: evaluate_results(dataset)
@@ -29,6 +32,8 @@ sequenceDiagram
     EA->>D: rilegge results/ e preprocessing/X_train_raw.csv, salva CSV di errore
     M->>S: test_statistical_tests(dataset)
     S->>D: rilegge results/boot_*.npy, salva 3 CSV di confronto
+    M->>H: evaluate_holdout(dataset)
+    H->>D: rilegge embeddings/ e *_test.npy, salva holdout_evaluation.csv
     M->>R: generate_report(dataset)
     R->>D: rilegge tutto results/, salva reports/report.md
     R-->>U: report.md pronto

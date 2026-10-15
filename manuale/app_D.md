@@ -16,9 +16,9 @@
 
 **[Verificato — WebSearch, 2026-09-05]** DeLong, E. R., DeLong, D. M., & Clarke-Pearson, D. L. (1988). Comparing the areas under two or more correlated receiver operating characteristic curves: a nonparametric approach. *Biometrics*, 44(3), 837–845. https://doi.org/10.2307/2531595 — fonda il test usato in `statisticaltest.py` (capitolo 37.3) tramite la libreria `MLstatkit`.
 
-**[Verificato — WebSearch, 2026-09-05]** Chawla, N. V., Bowyer, K. W., Hall, L. O., & Kegelmeyer, W. P. (2002). SMOTE: Synthetic Minority Over-sampling Technique. *Journal of Artificial Intelligence Research*, 16. https://doi.org/10.1613/jair.953 — introduce sia SMOTE sia la sua estensione a feature miste numeriche/categoriali (SMOTENC), usata in `preprocessing.py:84-92` (capitolo 21.2).
+**[Verificato — WebSearch, 2026-09-05]** Chawla, N. V., Bowyer, K. W., Hall, L. O., & Kegelmeyer, W. P. (2002). SMOTE: Synthetic Minority Over-sampling Technique. *Journal of Artificial Intelligence Research*, 16. https://doi.org/10.1613/jair.953 — introduce sia SMOTE sia la sua estensione a feature miste numeriche/categoriali (SMOTENC), usata in `preprocessing.py:158-166` (capitolo 21.2).
 
-**[Verificato — WebSearch, 2026-09-05]** McInnes, L., Healy, J., & Melville, J. (2018). UMAP: Uniform Manifold Approximation and Projection for Dimension Reduction. *arXiv preprint* arXiv:1802.03426. https://arxiv.org/abs/1802.03426 — algoritmo usato in `function.py:224` (capitolo 38).
+**[Verificato — WebSearch, 2026-09-05]** McInnes, L., Healy, J., & Melville, J. (2018). UMAP: Uniform Manifold Approximation and Projection for Dimension Reduction. *arXiv preprint* arXiv:1802.03426. https://arxiv.org/abs/1802.03426 — algoritmo usato in `function.py:247` (capitolo 38).
 
 **[Approfondimento facoltativo, verificato — WebSearch, 2026-09-05]** Hastie, T., Tibshirani, R., & Friedman, J. (2009). *The Elements of Statistical Learning: Data Mining, Inference, and Prediction* (2nd ed.). Springer. ISBN 978-0-387-84857-0. — riferimento generale su bias-variance tradeoff (capitolo 2.3), non specifico di questo progetto.
 

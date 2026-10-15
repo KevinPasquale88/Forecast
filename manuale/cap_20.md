@@ -2,11 +2,11 @@
 
 **Obiettivi del capitolo**
 
-- Avere una mappa completa di tutto ciò che `function.py` mette a disposizione degli altri sette moduli.
+- Avere una mappa completa di tutto ciò che `function.py` mette a disposizione degli altri moduli.
 - Leggere in dettaglio le due funzioni più significative del file: `get_output_dirs()` e `get_model_palette()`.
 - Riconoscere il pattern comune a tutte le nove funzioni di plotting, senza doverle leggere una per una.
 
-**[Fatto]** `function.py` (386 righe) è il file più lungo del progetto, e l'unico da cui tutti gli altri sette dipendono (Figura 17.1). Non contiene alcuna delle sette fasi della pipeline: è puro supporto — configurazione, percorsi, pulizia, grafici.
+**[Fatto]** `function.py` (416 righe) è il file più lungo del progetto, e l'unico da cui tutti gli altri dipendono (Figura 17.1). Non contiene alcuna delle otto fasi della pipeline: è puro supporto — configurazione, percorsi, pulizia, grafici.
 
 ## 20.1 Config modelli e famiglie
 
@@ -33,7 +33,7 @@ def get_output_dirs(dataset):
 ```
 Tre cose da notare, con lo sguardo di chi ha già letto la Parte II. Primo: la validazione (`if dataset not in datasets`) è l'unico controllo esplicito di correttezza su questo parametro in tutto il progetto — se non ci fosse, un nome di dataset sbagliato produrrebbe silenziosamente una nuova cartella `datas/<nomesbagliato>/` invece di un errore, perché `os.path.join` non sa cosa sia un dataset valido, sa solo concatenare stringhe. Secondo: `os.makedirs(d, exist_ok=True)` crea le cartelle se non esistono e non solleva errore se esistono già — l'opposto del comportamento di default di una `mkdir` che fallirebbe su una cartella esistente. Terzo: la funzione ha un **side-effect sul filesystem** (crea cartelle) dentro quella che sembra, dal nome, una semplice funzione "getter" — nulla nella firma lo segnala.
 
-**[Fatto]** Le quattro funzioni `delete_files_*` (righe 179-209) condividono tutte la stessa struttura: ricevono una cartella, elencano i file al suo interno con `os.listdir()`, e cancellano quelli il cui nome contiene una delle stringhe di un elenco di pattern concordato a mano (per esempio `["model_performance","_y_true", "_y_score", ...]` per `delete_files_results`, riga 196). **[Interpretazione]** Questo significa che la sicurezza di questa pulizia dipende interamente dalla precisione di quegli elenchi di stringhe: un file che finisse per coincidenza per contenere una di quelle sottostringhe nel nome, anche se non prodotto da questo progetto, verrebbe cancellato senza distinzione — non c'è un controllo di formato o di provenienza, solo un controllo su una sottostringa nel nome del file.
+**[Fatto]** Le quattro funzioni `delete_files_*` (righe 196-232) condividono tutte la stessa struttura: ricevono una cartella, elencano i file al suo interno con `os.listdir()`, e cancellano quelli il cui nome contiene una delle stringhe di un elenco di pattern concordato a mano (per esempio `["model_performance","_y_true", "_y_score", ...]` per `delete_files_results`, riga 219). **[Interpretazione]** Questo significa che la sicurezza di questa pulizia dipende interamente dalla precisione di quegli elenchi di stringhe: un file che finisse per coincidenza per contenere una di quelle sottostringhe nel nome, anche se non prodotto da questo progetto, verrebbe cancellato senza distinzione — non c'è un controllo di formato o di provenienza, solo un controllo su una sottostringa nel nome del file. **[Fatto]** Il rovescio della medaglia di questi elenchi a mano è emerso davvero durante la revisione del progetto: per lungo tempo `delete_files_preprocessing()` non copriva `X_train_raw.csv` e `delete_files_results()` non copriva i tre CSV dei test statistici, per cui un file di una run precedente poteva sopravvivere e venire riletto in silenzio da una run successiva. Gli elenchi attuali (che includono anche i nuovi `X_test_raw.csv`, `y_test.npy` e `holdout_evaluation.csv`) coprono ogni file che la rispettiva fase scrive — i commenti alle righe 206-208 e 216-219 documentano esplicitamente questa storia.
 
 ## 20.3 Le nove funzioni di plotting
 
@@ -70,14 +70,15 @@ Raggruppa prima i modelli per famiglia, poi genera per ciascuna famiglia tante s
 |---|---|---|
 | Costanti di schema | `columns`, `num_cols`, `cat_cols`, `columns_diabetes130`, `num_cols_diabetes130`, `cat_cols_diabetes130` | 10-35 |
 | Configurazione modelli | `models_ollama`, `models_medical`, `models_all`, `MODEL_FAMILY`, `FAMILY_COLORS` | 38-61 |
-| Stato condiviso | `results`, `datasets` | 67-74 |
-| Percorsi e pulizia | `get_output_dirs()`, `delete_files_embeddings()`, `delete_files_preprocessing()`, `delete_files_results()`, `delete_files_graphics()` | 79-93, 179-209 |
+| Stato condiviso | `results`, `datasets` | 72-74 |
+| Percorsi e pulizia | `get_output_dirs()`, `delete_files_embeddings()`, `delete_files_preprocessing()`, `delete_files_results()`, `delete_files_graphics()` | 79-93, 196-232 |
 | Caricamento dati | `load_heart_disease()`, `load_diabetes130()` | 96-132 |
-| Plotting | `save_figure()`, `get_model_palette()`, e nove funzioni `plot_*` | 134-387 |
+| Soglia condivisa | `optimal_f1_threshold()` (usata da `classification.py` e `holdout_evaluation.py`) | 177-191 |
+| Plotting | `save_figure()`, `get_model_palette()`, e dieci funzioni `plot_*` | 134-416 |
 
 ## Errori tipici
 
-Un `ValueError: Invalid dataset '...'` significa che `--dataset` (o il valore passato direttamente a una funzione) non è esattamente `"heart_disease"` o `"diabetes130"` — nessuna normalizzazione di maiuscole/minuscole o di spazi è applicata. Un grafico mancante o con colori inattesi, dopo aver aggiunto un modello (capitolo 19.3), è quasi sempre riconducibile a `FAMILY_COLORS` o `family_order` non aggiornati per una famiglia nuova.
+Un `ValueError: Invalid dataset '...'` significa che `--dataset` (o il valore passato direttamente a una funzione) non è esattamente `"heart_disease"` o `"diabetes130"` — nessuna normalizzazione di maiuscole/minuscole o di spazi è applicata. Un grafico con colori inattesi (grigio di ripiego), dopo aver aggiunto un modello (capitolo 19.3), è quasi sempre riconducibile a `FAMILY_COLORS` non aggiornato per una famiglia nuova.
 
 ## Riepilogo
 

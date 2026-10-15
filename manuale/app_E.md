@@ -2,17 +2,17 @@
 
 > Domande aperte che questo libro non ha potuto chiudere leggendo solo il codice e i dati disponibili. Da girare a chi ha scritto il progetto, o da trattare esplicitamente come limite dichiarato in tesi. Ordinate per capitolo di prima comparsa.
 
-1. **(capitolo 6, tech sheet §8.1)** A cosa serve `ucimlrepo` in `requirements.txt` se non risulta importata in nessuno dei nove file di `master`? Possibile residuo di uno script di download dati precedente, mai rimosso dal file delle dipendenze.
+1. **(capitolo 6, tech sheet §8.1)** A cosa serve `ucimlrepo` in `requirements.txt` se non risulta importata in nessuno degli undici file di `master`? Possibile residuo di uno script di download dati precedente, mai rimosso dal file delle dipendenze.
 
-2. **(capitolo 15.2, capitolo 16.1)** Il comando `ollama pull yxchia/multilingual-e5-base` in `README.md:104` è un refuso di battitura o il residuo di una versione precedente del progetto che usava davvero quel modello, prima di passare a `jeffh/intfloat-e5-base-v2:q8_0` in `function.py:39`?
+2. **(capitolo 15.2, capitolo 16.1) — CHIUSA NEL CODICE, APERTA SULLA CAUSA** Il comando `ollama pull yxchia/multilingual-e5-base` presente per lungo tempo in `README.md:104` è stato corretto dai fix di revisione (`docs/CHANGES.md` §10) nel nome che `function.py:39` richiede davvero. Resta senza risposta la domanda storica: era un refuso di battitura, o il residuo di una versione precedente del progetto che usava davvero quel modello?
 
-3. **(capitolo 27.2, capitolo 52)** Il testo narrativo statico di `generatereport.py:192-225` è una funzionalità incompleta (mai finita di implementare) o una scelta consapevole per un primo prototipo di report, poi mai rivista?
+3. **(capitolo 27.2, capitolo 52) — CHIUSA NEL CODICE, APERTA SULLA CAUSA** Il testo narrativo statico di `generatereport.py` è stato sostituito da sezioni calcolate dai dati della run (`_build_discussion`/`_build_conclusions`, `docs/CHANGES.md` §8). Resta senza risposta se l'originale fosse una funzionalità incompleta o una scelta consapevole per un primo prototipo, poi mai rivista.
 
 4. **(capitolo 29.1, tech sheet §7bis)** La cifra "297" in `docs/DATASET.md:17`/`README.md:78` è un refuso ereditato dalla letteratura, il residuo di una versione precedente del progetto che usava solo il sottoinsieme Cleveland, o un'altra causa? Il capitolo 29.1 fornisce un'inferenza motivata (4+2=6 righe scartate spiegano esattamente 303-6=297) ma non una conferma diretta da chi ha scritto la documentazione.
 
-5. **(capitolo 29.3, capitolo 31.1, capitolo 46.2)** L'imputazione di `ca`/`thal` (Heart Disease) e `max_glu_serum`/`A1Cresult` (Diabetes130) su una maggioranza di valori mancanti è una scelta consapevole (per esempio, per mantenere il numero di feature costante fra i due dataset) o un'assunzione non esaminata dagli autori originali? Un'alternativa — escludere queste feature, o aggiungere un indicatore esplicito di "valore imputato" — non risulta mai considerata nel codice.
+5. **(capitolo 29.3, capitolo 31.1, capitolo 46.2) — PARZIALMENTE CHIUSA** L'alternativa "aggiungere un indicatore esplicito di valore imputato", che la stesura originale di questa voce segnalava come mai considerata nel codice, è stata implementata dai fix di revisione (`MISSING_INDICATOR_THRESHOLD`, capitolo 21.2, con mascheramento "not recorded" nel testo). Resta aperta la domanda storica: l'imputazione su una maggioranza di valori mancanti era una scelta consapevole degli autori originali o un'assunzione non esaminata? E resta non esplorata l'alternativa più radicale di escludere del tutto queste feature.
 
-6. **(capitolo 31.3)** Il margine di sicurezza per valori `NaN` residui in `_fmt_num()`, `_fmt_cat()`, `_fmt_bool()` (`embedding.py:28-41`) si è mai attivato in una vera esecuzione della pipeline, o è codice difensivo per un caso che l'attuale sequenza imputazione→SMOTENC→conversione a testo non produce mai?
+6. **(capitolo 31.3) — CHIUSA** Il margine di sicurezza per valori residui in `_fmt_num()`, `_fmt_cat()`, `_fmt_bool()` (`embedding.py:28-41`) non si attiva mai per la via del `NaN` (l'imputazione li ha già sostituiti), ma dal fix degli indicatori la stringa "not recorded" è diventata il percorso ordinario per i valori imputati su colonne a mancanza massiccia, via `_masked()` — la risposta è nel capitolo 31.3 aggiornato.
 
 7. **(capitolo 54.1, tech sheet §8.2)** Quale dei tre modelli biomedici (o, meno probabilmente, uno dei quattro generalisti) è effettivamente designato da `EMBEDDING_MODEL` nella copia divergente di `function.py` sul branch `chatbot`? Il capitolo 54.1 offre un'inferenza motivata (l'uso di `SentenceTransformer` suggerisce un modello biomedico, non uno via Ollama) ma non ha letto quella versione specifica del file.
 
@@ -24,4 +24,4 @@
 
 ## Come usare questa lista
 
-Ogni voce è formulata come domanda diretta, pronta per essere girata al relatore o a chi ha scritto il codice originale. Le voci 1-7 riguardano il codice e i dati del progetto; le voci 8-10 riguardano solo la precisione bibliografica e non intaccano la comprensione tecnica del progetto.
+Ogni voce è formulata come domanda diretta, pronta per essere girata al relatore o a chi ha scritto il codice originale. Le voci 1-7 riguardano il codice e i dati del progetto; le voci 8-10 riguardano solo la precisione bibliografica e non intaccano la comprensione tecnica del progetto. Le voci marcate CHIUSA sono state risolte dai fix di revisione documentati in `docs/CHANGES.md`: restano nell'elenco perché la parte storica della domanda (perché il codice era così?) può ancora interessare una discussione di tesi.

@@ -154,7 +154,7 @@ about the data) but updated to remove items this branch already addresses.
 
 ```bash
 source env/bin/activate
-python -m pytest -v                      # 22 unit tests, no network/Ollama required
+python -m pytest -v                      # 34 unit tests, no network/Ollama required
 python main.py --dataset heart_disease   # full pipeline, real Ollama + Hugging Face calls
 ```
 

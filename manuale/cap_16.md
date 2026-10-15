@@ -13,8 +13,8 @@
 | Sintomo | Causa reale | Dove verificarla |
 |---|---|---|
 | Installazione di `torch`/`numba` lenta o fallita | Python tradotto da Rosetta invece che nativo `arm64` su Apple Silicon | `python3 -c "import platform; print(platform.machine())"` deve dare `arm64`, non `x86_64` (capitolo 15.1) |
-| `ollama pull` fallisce, o "model not found" durante la generazione degli embedding per e5-base | Il comando del README (`yxchia/multilingual-e5-base`) e il nome usato da `function.py:39` (`jeffh/intfloat-e5-base-v2:q8_0`) sono due modelli diversi — capitolo 15.2 lo tratta per esteso | `ollama list` deve mostrare esattamente `jeffh/intfloat-e5-base-v2:q8_0`, non l'altro nome |
-| Errore di autenticazione o modello "gated" verso Hugging Face | `HF_READ_TOKEN` mancante o non valido in `.env` | `embedding.py:146-149` stampa esplicitamente se un token è stato rilevato o meno |
+| "model not found" durante la generazione degli embedding per e5-base | Modello scaricato con un nome diverso da quello richiesto da `function.py:39` (`jeffh/intfloat-e5-base-v2:q8_0`) — accadeva a chi seguiva una vecchia versione del README, che indicava `yxchia/multilingual-e5-base`; corretto dai fix di revisione, capitolo 15.2 | `ollama list` deve mostrare esattamente `jeffh/intfloat-e5-base-v2:q8_0` |
+| Errore di autenticazione o modello "gated" verso Hugging Face | `HF_READ_TOKEN` mancante o non valido in `.env` | `embedding.py:161-164` stampa esplicitamente se un token è stato rilevato o meno |
 | `FileNotFoundError` su un file `.npy` in `embeddings/` o `results/` | Una fase precedente della pipeline non si è completata — le fasi dipendono rigidamente dall'output della fase precedente, senza controlli di integrità intermedi | Rilancia `python main.py`, osservando l'output console per capire quale fase si è interrotta (capitolo 18.3) |
 | `ModuleNotFoundError` per un pacchetto elencato in `requirements.txt` | L'ambiente virtuale è stato attivato ma `pip install -r requirements.txt` non è mai stato eseguito, o è stato interrotto a metà | `pip list` dentro l'ambiente attivato, confrontato con `requirements.txt` |
 | `source env/bin/activate` non funziona | L'ambiente virtuale è corrotto o incompleto | Elimina `env/` e ricrealo da zero (capitolo 15.2, passo 2) |
@@ -25,10 +25,10 @@ Eseguire l'intera pipeline solo per scoprire, dopo dieci minuti, che manca un to
 
 1. **L'interprete giusto è attivo.** `which python3` punta dentro `env/`.
 2. **Le dipendenze sono installate.** `pip show sentence-transformers torch scikit-learn` non restituisce errori per nessuno dei tre.
-3. **Ollama è in esecuzione e ha i modelli giusti.** `ollama list` mostra i quattro nomi esatti di `function.py:39-42`, non quelli (in un caso, diversi) del README.
+3. **Ollama è in esecuzione e ha i modelli giusti.** `ollama list` mostra i quattro nomi esatti di `function.py:39-42` (oggi coincidenti con quelli del README corretto).
 4. **Il token Hugging Face è configurato**, se è la prima esecuzione dopo l'installazione. `cat .env` (mai con `git` di mezzo — è un file locale, mai tracciato) mostra `HF_READ_TOKEN` valorizzato.
 
-> **PROVA TU —** scrivi uno script di pochissime righe che automatizzi questi quattro controlli e stampi un semplice "OK" o "MANCA: ..." per ciascuno. Non è un esercizio di programmazione avanzata: è esattamente il tipo di controllo di sanità dell'ambiente (*smoke test*) che, in un contesto Java enterprise, faresti probabilmente girare come primo step di una pipeline CI — qui non esiste (capitolo 48 lo tratta nel dettaglio), ed è un'occasione concreta per aggiungerne uno tu.
+> **PROVA TU —** scrivi uno script di pochissime righe che automatizzi questi quattro controlli e stampi un semplice "OK" o "MANCA: ..." per ciascuno. Non è un esercizio di programmazione avanzata: è esattamente il tipo di controllo di sanità dell'ambiente (*smoke test*) che, in un contesto Java enterprise, faresti probabilmente girare come primo step di una pipeline CI — la suite pytest del progetto (capitolo 48) copre la logica pura ma non l'ambiente, ed è un'occasione concreta per aggiungerne uno tu.
 
 ## 16.3 Cosa NON esiste in Python: niente bytecode portabile tra versioni, nessun `.jar`
 
@@ -42,18 +42,18 @@ Python compila sì il proprio codice sorgente in bytecode — lo trovi nella car
 
 ## Riepilogo
 
-Gli errori più probabili in questo progetto hanno cause specifiche, verificabili leggendo il codice: architettura Rosetta invece di `arm64`, un nome di modello Ollama sbagliato nel README per il solo e5-base, un token Hugging Face mancante, o una fase della pipeline interrotta a metà senza controlli di integrità. Una checklist di quattro verifiche rapide, eseguita prima del lancio completo, individua la maggior parte di questi problemi in pochi secondi. A differenza di un `.jar` Java, il codice Python di questo progetto non ha una forma distribuibile compilata: ogni macchina di destinazione ricostruisce l'ambiente da zero a partire dal codice sorgente e da `requirements.txt`.
+Gli errori più probabili in questo progetto hanno cause specifiche, verificabili leggendo il codice: architettura Rosetta invece di `arm64`, un modello Ollama scaricato con il nome sbagliato (l'errore storico del README per e5-base, oggi corretto), un token Hugging Face mancante, o una fase della pipeline interrotta a metà senza controlli di integrità. Una checklist di quattro verifiche rapide, eseguita prima del lancio completo, individua la maggior parte di questi problemi in pochi secondi. A differenza di un `.jar` Java, il codice Python di questo progetto non ha una forma distribuibile compilata: ogni macchina di destinazione ricostruisce l'ambiente da zero a partire dal codice sorgente e da `requirements.txt`.
 
 ## Domande di autoverifica
 
-**1. Se `ollama pull yxchia/multilingual-e5-base` sembra completarsi senza errori, perché la pipeline potrebbe comunque fallire più avanti per il modello e5-base?**
-Perché quel comando scarica un modello con un nome diverso da quello che `function.py:39` richiede davvero (`jeffh/intfloat-e5-base-v2:q8_0`). `ollama pull` va a buon fine, ma il modello scaricato non è quello che `embedding.py` chiederà al server Ollama in fase di generazione degli embedding.
+**1. Perché, con la vecchia versione del README, `ollama pull yxchia/multilingual-e5-base` sembrava completarsi senza errori ma la pipeline falliva più avanti per il modello e5-base?**
+Perché quel comando scaricava un modello con un nome diverso da quello che `function.py:39` richiede davvero (`jeffh/intfloat-e5-base-v2:q8_0`). `ollama pull` andava a buon fine, ma il modello scaricato non era quello che `embedding.py` avrebbe chiesto al server Ollama in fase di generazione degli embedding. Il README è stato corretto dai fix di revisione.
 
 **2. Perché copiare un file `.pyc` da `__pycache__` su un'altra macchina non è un modo affidabile di distribuire questo progetto?**
 Perché il bytecode Python compilato è specifico della versione esatta dell'interprete che lo ha generato, e non è garantito funzionare con una versione diversa — a differenza di un `.jar`, pensato fin dall'origine per essere portabile fra JVM diverse.
 
 **3. Quali quattro controlli faresti, in trenta secondi, prima di lanciare l'intera pipeline per la prima volta?**
-Verificare che l'interprete attivo sia quello dentro `env/`, che le dipendenze chiave siano installate, che `ollama list` mostri i nomi esatti richiesti da `function.py` (non quelli, in un caso diversi, del README), e che `.env` contenga un token Hugging Face valorizzato.
+Verificare che l'interprete attivo sia quello dentro `env/`, che le dipendenze chiave siano installate, che `ollama list` mostri i nomi esatti richiesti da `function.py`, e che `.env` contenga un token Hugging Face valorizzato.
 
 > **MATERIALE PER LA TESI**
 > 1. La tabella degli errori più probabili con causa reale (§16.1) — riusabile in un'appendice della tesi dedicata alla riproducibilità dell'ambiente sperimentale.

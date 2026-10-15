@@ -26,11 +26,15 @@ Tabella completa degli iperparametri del progetto (capitolo 39.1)
 
 Tabella 44.1 --- Risultati completi con intervalli di confidenza, Heart Disease (capitolo 44.1)
 
+Tabella 44.1bis --- Valutazione holdout sul test set trattenuto, Heart Disease (capitolo 44.1)
+
 Tabella 45.1 --- Risultati completi con intervalli di confidenza, Diabetes130 (capitolo 45.1)
+
+Tabella 45.1bis --- Valutazione holdout sulla distribuzione reale, Diabetes130 (capitolo 45.1)
 
 Tabella 46.1 --- Tassi di errore reali, entrambi i dataset (capitolo 46.1)
 
-Tabella dei limiti metodologici con gravità e correggibilità (capitolo 51)
+Tabella dei limiti metodologici con gravità e stato (capitolo 51)
 
 Tabella di sintesi manuale\,\textrightarrow\,tesi (capitolo 56)
 

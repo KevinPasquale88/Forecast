@@ -8,11 +8,11 @@
 
 ## 4.1 Due classi, una probabilità, una soglia
 
-Un classificatore binario, nella sua forma più comune — quella usata in questo progetto — non produce direttamente un'etichetta "sì" o "no". Produce un numero fra 0 e 1, interpretabile come una probabilità stimata che l'esempio appartenga alla classe positiva. **[Fatto]** Nel codice, questo numero è `y_score`, prodotto da `logisticReg.predict_proba(X_val)[:, 1]` (`classification.py:28`) — la seconda colonna dell'output di `predict_proba`, quella associata alla classe 1.
+Un classificatore binario, nella sua forma più comune — quella usata in questo progetto — non produce direttamente un'etichetta "sì" o "no". Produce un numero fra 0 e 1, interpretabile come una probabilità stimata che l'esempio appartenga alla classe positiva. **[Fatto]** Nel codice, questo numero è `y_score`, prodotto da `logisticReg.predict_proba(X_val)[:, 1]` (`classification.py:42`) — la seconda colonna dell'output di `predict_proba`, quella associata alla classe 1.
 
 Per ottenere un'etichetta vera e propria — "malattia presente" oppure "malattia assente" — serve un secondo passaggio: confrontare quel numero con una **soglia di decisione**. Se il punteggio supera la soglia, l'etichetta prevista è 1; altrimenti è 0. La soglia più ovvia è 0.5, ma non è affatto obbligata, e il capitolo 35 mostra perché questo progetto ne sceglie una diversa, calcolata per ogni fold di validazione.
 
-> **SE VIENI DA JAVA —** non c'è un `enum` a due valori da qualche parte nel codice. La classe prevista è sempre calcolata al volo con un confronto numerico — `(y_score >= tau).astype(int)` (`classification.py:37`) — e non esiste, in nessun punto della pipeline, un tipo che rappresenti esplicitamente "la classe": è sempre e solo un intero 0 o 1, con il significato che gli attribuisci tu leggendo il codice, non il compilatore.
+> **SE VIENI DA JAVA —** non c'è un `enum` a due valori da qualche parte nel codice. La classe prevista è sempre calcolata al volo con un confronto numerico — `(y_score >= tau).astype(int)` (`classification.py:44`) — e non esiste, in nessun punto della pipeline, un tipo che rappresenti esplicitamente "la classe": è sempre e solo un intero 0 o 1, con il significato che gli attribuisci tu leggendo il codice, non il compilatore.
 
 ## 4.2 Sbilanciamento delle classi
 

@@ -14,7 +14,7 @@ dfs = [pd.read_csv(f, header=None, na_values="?") for f in files]
 ```
 `f` è posizionale (il primo argomento di `read_csv`); `header=None` e `na_values="?"` sono keyword. In Java, l'equivalente più vicino sarebbe un overload di metodo con quella combinazione specifica di parametri, oppure un builder — qui è semplicemente la stessa funzione, chiamata specificando solo i parametri che vuoi cambiare rispetto al loro default.
 
-**[Fatto]** I default stessi compaiono ovunque nelle firme del progetto: `def preprocessing_data(dataset="heart_disease")` (`preprocessing.py:19`), `def bootstrap_metrics(y_true, y_score, y_pred, n_iter=10000, seed=42)` (`evaluation.py:62`), `def load_diabetes130(sample_size=20000, random_state=42)` (`function.py:116`). In tutti questi casi il default è un valore immutabile — una stringa, un intero — e non c'è alcun problema.
+**[Fatto]** I default stessi compaiono ovunque nelle firme del progetto: `def preprocessing_data(dataset="heart_disease")` (`preprocessing.py:28`), `def bootstrap_metrics(y_true, y_score, y_pred, n_iter=10000, seed=42)` (`evaluation.py:62`), `def load_diabetes130(sample_size=20000, random_state=42)` (`function.py:116`). In tutti questi casi il default è un valore immutabile — una stringa, un intero — e non c'è alcun problema.
 
 > **ATTENZIONE —** se il default fosse invece una lista o un dizionario, ci sarebbe un problema, e non un problema ipotetico: è una delle trappole più conosciute e più citate dell'intero linguaggio, e vale la pena saperla riconoscere anche se — verificato — non compare in nessuna firma di questo progetto. Considera una funzione scritta così, in un progetto diverso da questo:
 > ```python
@@ -26,13 +26,13 @@ dfs = [pd.read_csv(f, header=None, na_values="?") for f in files]
 
 ## 9.2 Funzioni come cittadini di prima classe
 
-In Python, una funzione è un valore come un altro: puoi assegnarla a una variabile, passarla come argomento, restituirla da un'altra funzione, senza alcuna sintassi speciale o interfaccia da implementare. **[Fatto]** `function.py:246`:
+In Python, una funzione è un valore come un altro: puoi assegnarla a una variabile, passarla come argomento, restituirla da un'altra funzione, senza alcuna sintassi speciale o interfaccia da implementare. **[Fatto]** `function.py:269`:
 ```python
 model_order = sorted(results_dict.keys(), key=lambda m: (MODEL_FAMILY.get(m, ""), m))
 ```
-`lambda m: (MODEL_FAMILY.get(m, ""), m)` è una funzione anonima di una riga, passata a `sorted()` tramite il parametro keyword `key`: per ogni elemento `m` da ordinare, restituisce una tupla (famiglia, nome), e `sorted()` ordina usando quella tupla come chiave di confronto — prima per famiglia, poi per nome, entrambi in ordine alfabetico. La stessa identica riga ricorre altre due volte nel progetto (`function.py:292,363`), sempre per ordinare i modelli in modo coerente nei grafici.
+`lambda m: (MODEL_FAMILY.get(m, ""), m)` è una funzione anonima di una riga, passata a `sorted()` tramite il parametro keyword `key`: per ogni elemento `m` da ordinare, restituisce una tupla (famiglia, nome), e `sorted()` ordina usando quella tupla come chiave di confronto — prima per famiglia, poi per nome, entrambi in ordine alfabetico. La stessa identica riga ricorre altre due volte nel progetto (`function.py:315,363`), sempre per ordinare i modelli in modo coerente nei grafici.
 
-**[Fatto]** Un esempio più esplicito ancora, `embedding.py:206`:
+**[Fatto]** Un esempio più esplicito ancora, `embedding.py:231`:
 ```python
 futures.append(executor.submit(process_model, m, texts, labels, embeddings_dir))
 ```
@@ -44,13 +44,13 @@ futures.append(executor.submit(process_model, m, texts, labels, embeddings_dir))
 
 In Java puoi definire due metodi con lo stesso nome e parametri di tipo diverso, e il compilatore sceglie quale invocare in base ai tipi degli argomenti nella chiamata. Python non ha questo meccanismo: due funzioni con lo stesso nome nello stesso modulo, la seconda sovrascrive semplicemente la prima — non c'è "risoluzione di overload" perché non ci sono tipi dichiarati su cui basarla.
 
-**[Fatto]** Il progetto risolve lo stesso tipo di problema — comportamento diverso a seconda dei dati — con funzioni dal **nome esplicitamente diverso**, scelte a runtime con un `if`/`else` ordinario: `record_to_text_heart_disease()` e `record_to_text_diabetes130()` (`embedding.py:43,64`), selezionate in `embedding.py:16`:
+**[Fatto]** Il progetto risolve lo stesso tipo di problema — comportamento diverso a seconda dei dati — con funzioni dal **nome esplicitamente diverso**, scelte a runtime con un `if`/`else` ordinario: `record_to_text_heart_disease()` e `record_to_text_diabetes130()` (`embedding.py:58,64`), selezionate in `embedding.py:16`:
 ```python
 record_to_text = record_to_text_diabetes130 if dataset == "diabetes130" else record_to_text_heart_disease
 ```
 Nota la seconda cosa interessante di questa riga, oltre alla scelta fra le due funzioni: `record_to_text` diventa qui una variabile che *contiene una funzione* (di nuovo, funzioni come valori — capitolo 9.2), poi chiamata più sotto come `record_to_text(r)` senza sapere, in quel punto del codice, quale delle due implementazioni sia stata effettivamente scelta.
 
-> **ATTENZIONE —** questo pattern — un `if`/`else` che sceglie fra due funzioni con nomi diversi — è l'equivalente funzionale di un overload, ma è responsabilità di chi scrive il codice mantenerlo coerente: non c'è alcun controllo che garantisca che `record_to_text_heart_disease` e `record_to_text_diabetes130` abbiano una firma compatibile (nel senso di "prendono entrambe una riga e restituiscono entrambe una stringa"). Lo sono, verificato leggendo entrambe (`embedding.py:43-59` e `embedding.py:64-85`), ma nessuna riga di codice lo impone: è una convenzione, rispettata da chi ha scritto le due funzioni, non verificata da nessuno strumento in questo progetto.
+> **ATTENZIONE —** questo pattern — un `if`/`else` che sceglie fra due funzioni con nomi diversi — è l'equivalente funzionale di un overload, ma è responsabilità di chi scrive il codice mantenerlo coerente: non c'è alcun controllo che garantisca che `record_to_text_heart_disease` e `record_to_text_diabetes130` abbiano una firma compatibile (nel senso di "prendono entrambe una riga e restituiscono entrambe una stringa"). Lo sono, verificato leggendo entrambe (`embedding.py:58-74` e `embedding.py:79-100`), ma nessuna riga di codice lo impone: è una convenzione, rispettata da chi ha scritto le due funzioni, non verificata da nessuno strumento in questo progetto.
 
 ## Riepilogo
 
@@ -61,7 +61,7 @@ Il progetto usa ampiamente argomenti keyword e default immutabili, ma mai un def
 **1. Perché una funzione con un parametro di default `lista=[]` è pericolosa, mentre `n_iter=10000` non lo è?**
 Perché il valore di default viene creato una sola volta, quando Python legge la definizione della funzione. Un intero è immutabile, quindi non importa se è "condiviso" fra le chiamate. Una lista è mutabile: se una chiamata la modifica, la modifica persiste per tutte le chiamate successive che non forniscono l'argomento esplicitamente.
 
-**2. In che senso `process_model`, passato a `executor.submit()` in `embedding.py:206`, non viene "chiamato" in quel punto del codice?**
+**2. In che senso `process_model`, passato a `executor.submit()` in `embedding.py:231`, non viene "chiamato" in quel punto del codice?**
 Perché compare senza parentesi: è il valore-funzione stesso, non il risultato della sua esecuzione. Verrà effettivamente invocato più tardi, dentro un thread del pool, con gli argomenti passati subito dopo.
 
 **3. Come risolve il progetto l'esigenza di un comportamento diverso per Heart Disease e per Diabetes130, in assenza di overloading di funzione?**

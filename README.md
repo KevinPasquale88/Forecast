@@ -203,6 +203,21 @@ To automate environment setup and Ollama model downloads as well, use `run_pipel
 ```
 Note: embedding generation for the general-purpose models uses `ollama.Client` in `embedding.py` — ensure the Ollama service is running and the required models have been pulled (see [Installation](#installation)).
 
+## Inference (optional, not part of the pipeline)
+`main.py` trains and validates; it never predicts on a case it hasn't already seen and labeled. `inference.py` adds that separately, as a standalone module deliberately **not** wired into `main.py`'s eight phases — it consumes a completed run's output on demand, it isn't a ninth pipeline phase:
+
+```bash
+python inference.py --dataset heart_disease --record '{"age": 63, "sex": 1, "cp": 1, "trestbps": 145, "chol": 233, "fbs": 1, "restecg": 0, "thalach": 150, "exang": 0, "oldpeak": 2.3, "slope": 3, "ca": 0, "thal": 6}'
+```
+
+or as a library:
+```python
+from inference import predict_record
+predict_record({"age": 63, "sex": 1, ...}, dataset="heart_disease")
+```
+
+Requires a completed `python main.py --dataset ...` run for that dataset first (it fits on the already-saved training embeddings, it does not regenerate them). See **[docs/INFERENCE.md](docs/INFERENCE.md)** for the full design rationale, including how missing fields are handled and how this differs from the (unmerged, `chatbot` branch) chatbot's approach to the same problem.
+
 ## Troubleshooting
 - **ARM/x86 mismatch (Apple Silicon)**: make sure `python3` and the virtual environment are built natively for `arm64` (`python3 -c "import platform; print(platform.machine())"` should print `arm64`). A Rosetta-translated Python install can cause slow or failing installs of `torch`/`numba`.
 - **`ollama pull` / model not found errors**: the general-purpose models must be pulled before running the pipeline (see [Installation](#installation), step 4). Verify with `ollama list`.
@@ -217,3 +232,5 @@ See [requirements.txt](requirements.txt) for the full dependency list.
 ## Further Reading
 - **[docs/DATASET.md](docs/DATASET.md)** — full dataset origin, composition, ethics, and limitations
 - **[docs/STATISTICAL_TESTS.md](docs/STATISTICAL_TESTS.md)** — statistical testing methodology, hypotheses, and interpretation
+- **[docs/INFERENCE.md](docs/INFERENCE.md)** — single-record inference (`inference.py`): design, usage, and how it differs from the chatbot's approach
+- **[docs/CHANGES.md](docs/CHANGES.md)** — pipeline correctness and quality fixes, with rationale for each
