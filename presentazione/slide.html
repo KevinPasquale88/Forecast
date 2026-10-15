@@ -1,4 +1,3 @@
-<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1"><style>:root{color-scheme:light}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found]){display:none!important}</style></head><body>
 <title>Chatbot Clinico di Rischio</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -366,14 +365,88 @@ button[aria-pressed="true"] { background: var(--accent-soft); border-color: var(
 }
 
 /* ---------- print ---------- */
-@media print {
-  .chrome, .notes, .progress, .bar-bg { display: none !important; }
-  .slide { display: flex !important; min-height: auto; page-break-after: always; padding: 1.2cm; max-width: none; }
-  .print-notes { display: block !important; margin-top: .8cm; padding-top: .4cm; border-top: 1px solid #999; font-size: 9pt; color: #333; }
-  body { background: #fff; color: #000; }
-}
 .print-notes { display: none; }
 @page { size: A4 landscape; margin: 0; }
+
+@media print {
+  /* Force the light token set whichever theme the screen was in: these selectors match or
+     exceed the specificity of the dark-mode rules above and come last, so they win. */
+  :root,
+  :root:not([data-theme="light"]),
+  :root[data-theme="dark"] {
+    --ground: #FFFFFF;
+    --surface: #FFFFFF;
+    --sunk: #F1F5F3;
+    --ink: #13211E;
+    --ink-2: #3C4D49;
+    --muted: #6B7C78;
+    --line: #CFDBD7;
+    --line-strong: #B4C4BF;
+    --accent: #00705E;
+    --accent-soft: #E4F1ED;
+    --series-2: #9A5A0E;
+    --series-2-soft: #F7EDDE;
+    --risk: #A63B32;
+    --shadow: none;
+  }
+
+  html, body { background: #FFFFFF; }
+  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+
+  .chrome, .notes, .progress, .bar-bg, .hint { display: none !important; }
+
+  .slide {
+    display: flex !important;
+    min-height: auto;
+    height: 19.2cm;
+    page-break-after: always;
+    break-after: page;
+    overflow: hidden;
+    padding: 1cm 1.2cm;
+    max-width: none;
+    gap: .55rem;
+  }
+  .slide:last-child { page-break-after: avoid; break-after: auto; }
+
+  /* The print viewport can be narrower than the mobile breakpoint above, which would stack
+     every two-column layout and overflow the page. Paper is always wide: restore the columns. */
+  .c2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .c3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .c-7-5 { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); }
+  .c-5-7 { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); }
+  .cols { gap: .7rem; }
+
+  /* Screen type scale is viewport-relative; pin it to physical sizes for paper. */
+  h1 { font-size: 30pt; }
+  h2 { font-size: 20pt; }
+  h3 { font-size: 10pt; }
+  p, li, .step__t, .block p { font-size: 9.2pt; }
+  .lead { font-size: 11pt; }
+  table { font-size: 8.4pt; }
+  pre { font-size: 7.6pt; padding: .5rem .6rem; }
+  .bub { font-size: 8pt; padding: .4rem .6rem; }
+  .stat__v { font-size: 15pt; }
+  .eyebrow { font-size: 7.5pt; }
+  .panel { padding: .55rem .7rem; gap: .4rem; border-radius: 7px; }
+  .step { padding: .34rem .55rem; }
+  .ag { padding: .45rem .2rem; }
+  .ag__t { font-size: 12pt; }
+  .ecg { height: 38px; }
+
+  .print-notes {
+    display: block !important;
+    margin-top: auto;
+    padding-top: .35cm;
+    border-top: .5pt solid var(--line-strong);
+    font-size: 8pt;
+    line-height: 1.4;
+    color: var(--ink-2);
+  }
+  .print-notes b { color: var(--accent); }
+
+  /* Slides-only variant, used for the projection PDF. */
+  body.no-notes .print-notes { display: none !important; }
+}
 </style>
 
 <div class="bar-bg"></div>
@@ -1153,10 +1226,11 @@ python main.py <span class="fl">--dataset</span> diabetes130 \
     startX = null;
   }, { passive: true });
 
+  // ?notes=0 prints the deck without speaker notes (used for the projection PDF).
+  if (/[?&]notes=0\b/.test(location.search)) document.body.classList.add('no-notes');
+
   var fromHash = parseInt((location.hash || '').replace('#', ''), 10);
   if (!isNaN(fromHash) && fromHash >= 1 && fromHash <= slides.length) idx = fromHash - 1;
   render();
 })();
 </script>
-
-</body></html>
