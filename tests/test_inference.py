@@ -32,12 +32,20 @@ def _make_dirs(tmp_path):
     return dirs
 
 
-def test_missing_eligible_columns_reads_indicator_columns_from_x_train_raw_header(tmp_path):
+def test_missing_eligible_columns_are_the_columns_with_empty_cells_in_x_train_raw(tmp_path):
     dirs = _make_dirs(tmp_path)
-    pd.DataFrame(columns=["age", "sex", "ca", "thal", "ca_missing", "thal_missing"]).to_csv(
-        f"{dirs['preprocessing']}/X_train_raw.csv", index=False
-    )
+    pd.DataFrame({
+        "age": [63, 50], "sex": [1, 0], "ca": [0, np.nan], "thal": [np.nan, 7],
+    }).to_csv(f"{dirs['preprocessing']}/X_train_raw.csv", index=False)
     assert set(inference._missing_eligible_columns("heart_disease", dirs)) == {"ca", "thal"}
+
+
+def test_missing_eligible_columns_does_not_treat_diabetes_none_category_as_missing(tmp_path):
+    dirs = _make_dirs(tmp_path)
+    pd.DataFrame({
+        "race": ["Caucasian", np.nan], "max_glu_serum": ["None", "Norm"],
+    }).to_csv(f"{dirs['preprocessing']}/X_train_raw.csv", index=False)
+    assert inference._missing_eligible_columns("diabetes130", dirs) == ["race"]
 
 
 def test_missing_eligible_columns_raises_when_run_never_happened(tmp_path):
@@ -71,11 +79,11 @@ def test_best_model_name_raises_when_run_never_happened(tmp_path):
         inference._best_model_name("heart_disease", dirs)
 
 
-def _heart_disease_dirs_with_two_indicators(tmp_path):
+def _heart_disease_dirs_with_ca_thal_missing_in_training(tmp_path):
     dirs = _make_dirs(tmp_path)
-    pd.DataFrame(columns=inference.columns + ["ca_missing", "thal_missing"]).to_csv(
-        f"{dirs['preprocessing']}/X_train_raw.csv", index=False
-    )
+    record = _full_heart_disease_record()
+    rows = [record, {**record, "ca": np.nan, "thal": np.nan}]
+    pd.DataFrame(rows).to_csv(f"{dirs['preprocessing']}/X_train_raw.csv", index=False)
     return dirs
 
 
@@ -88,37 +96,34 @@ def _full_heart_disease_record():
 
 
 def test_prepare_row_accepts_a_fully_specified_record(tmp_path):
-    dirs = _heart_disease_dirs_with_two_indicators(tmp_path)
+    dirs = _heart_disease_dirs_with_ca_thal_missing_in_training(tmp_path)
     row, missing = inference._prepare_row(_full_heart_disease_record(), "heart_disease", dirs)
     assert missing == []
-    assert row["ca_missing"] == 0
-    assert row["thal_missing"] == 0
     assert row["ca"] == 0
+    assert not any(c.endswith("_missing") for c in row.index)
 
 
-def test_prepare_row_flags_an_eligible_column_left_as_none(tmp_path):
-    dirs = _heart_disease_dirs_with_two_indicators(tmp_path)
+def test_prepare_row_accepts_a_field_missing_in_training_left_as_none(tmp_path):
+    dirs = _heart_disease_dirs_with_ca_thal_missing_in_training(tmp_path)
     record = _full_heart_disease_record()
     record["ca"] = None
     row, missing = inference._prepare_row(record, "heart_disease", dirs)
     assert missing == ["ca"]
-    assert row["ca_missing"] == 1
     assert pd.isna(row["ca"])
-    # thal was supplied, so it must not be flagged even though ca was
-    assert row["thal_missing"] == 0
+    assert row["thal"] == 6
 
 
-def test_prepare_row_flags_an_eligible_column_omitted_entirely(tmp_path):
-    dirs = _heart_disease_dirs_with_two_indicators(tmp_path)
+def test_prepare_row_accepts_a_field_missing_in_training_omitted_entirely(tmp_path):
+    dirs = _heart_disease_dirs_with_ca_thal_missing_in_training(tmp_path)
     record = _full_heart_disease_record()
     del record["thal"]
     row, missing = inference._prepare_row(record, "heart_disease", dirs)
     assert missing == ["thal"]
-    assert row["thal_missing"] == 1
+    assert pd.isna(row["thal"])
 
 
 def test_prepare_row_rejects_a_required_field_left_as_none(tmp_path):
-    dirs = _heart_disease_dirs_with_two_indicators(tmp_path)
+    dirs = _heart_disease_dirs_with_ca_thal_missing_in_training(tmp_path)
     record = _full_heart_disease_record()
     record["age"] = None
     with pytest.raises(ValueError, match="age"):
@@ -126,11 +131,9 @@ def test_prepare_row_rejects_a_required_field_left_as_none(tmp_path):
 
 
 def test_prepare_row_rejects_a_required_field_left_as_nan(tmp_path):
-    """Regression test: record_to_text_*() treats a stray NaN as "not recorded" on *any*
-    column, indicator or not (capitolo 31.3) -- so checking `value is None` alone would let a
-    caller slip a NaN past validation on a required field and have it silently masked instead
-    of rejected. pd.isna() must catch this too."""
-    dirs = _heart_disease_dirs_with_two_indicators(tmp_path)
+    """Regression test: checking `value is None` alone would let a float NaN on a required field
+    slip past validation and reach record_to_text_*() as "not recorded". pd.isna() catches it."""
+    dirs = _heart_disease_dirs_with_ca_thal_missing_in_training(tmp_path)
     record = _full_heart_disease_record()
     record["trestbps"] = float("nan")
     with pytest.raises(ValueError, match="trestbps"):
@@ -138,7 +141,7 @@ def test_prepare_row_rejects_a_required_field_left_as_nan(tmp_path):
 
 
 def test_prepare_row_rejects_multiple_missing_required_fields_at_once(tmp_path):
-    dirs = _heart_disease_dirs_with_two_indicators(tmp_path)
+    dirs = _heart_disease_dirs_with_ca_thal_missing_in_training(tmp_path)
     record = _full_heart_disease_record()
     del record["age"]
     del record["sex"]

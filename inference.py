@@ -11,34 +11,23 @@ train and validate; this is a separate, on-demand utility that consumes their ou
 docs/INFERENCE.md for the full rationale, usage examples, and how this compares to the
 chatbot's approach.
 
-No model is ever persisted to disk anywhere in this project — classification.py,
-holdout_evaluation.py, and chatbot_core.py all refit a fresh LogisticRegression from the saved
-training embeddings on every use, rather than joblib-dumping a fitted estimator. This module
-follows the same convention rather than introducing model serialization as a new concept; a
-fitted classifier is cached in memory per (dataset, model) for the life of the process, so
-repeated calls to predict_record() in one session only pay the fit cost once. That cache is
-never invalidated: if `python main.py` regenerates a dataset's embeddings in the same
-long-running process, call predict_record() in a fresh process to pick it up.
+No model is ever persisted to disk anywhere in this project — classification.py and
+holdout_evaluation.py refit a fresh LogisticRegression from the saved training embeddings on
+every use. This module follows the same convention; a fitted classifier is cached in memory per
+(dataset, model) for the life of the process. That cache is never invalidated: if
+`python main.py` regenerates a dataset's embeddings, call predict_record() from a fresh process.
 
-Threshold selection mirrors the fix already applied to classification.py and
-holdout_evaluation.py (see docs/CHANGES.md and manual capitolo 23.2): the classifier is fit on
-80% of the full training-pool embeddings, the decision threshold is chosen with
-function.optimal_f1_threshold() on the other 20%, and only then is the new record scored — the
-threshold never sees the same data used to fit the classifier, and (trivially, since there is
-only one new record) never sees the record being predicted either.
+The classifier and its threshold follow the same protocol as holdout_evaluation.py
+(function.fit_classifier): standardized embeddings, C chosen by inner CV, threshold chosen on
+out-of-fold scores of a 5-fold CV over the whole training pool, classifier fit on all of it.
 
 A record is a dict of raw feature values, using the same field names as function.columns /
-function.columns_diabetes130 (minus the target column). A field may be omitted (or set to None
-/ NaN) only for the columns the run that produced this dataset's saved embeddings itself
-flagged as missing too often to impute honestly — read directly from that run's
-X_train_raw.csv header (the "<col>_missing" columns preprocessing.py adds, capitolo 21.2), not
-hardcoded here, so this never drifts out of sync with whichever columns actually crossed
-MISSING_INDICATOR_THRESHOLD in that specific run. For those columns,
-record_to_text_*()'s existing "not recorded" handling (capitolo 21.2/22.1 of the manual) is
-reused as-is. Every other field is required — this project never persists the training-time
-imputation statistics (fit_imputation_values() computes them fresh, in memory, once per run)
-that would let a missing value on any other field be filled in without fabricating data, so
-inference refuses to guess instead of doing that silently.
+function.columns_diabetes130 (minus the target column). The pipeline never imputes: a missing
+training value is written as "not recorded" in the text. A field may therefore be omitted (or
+set to None / NaN) only if that same field was actually missing in at least one training record
+of this dataset's saved run — read from X_train_raw.csv, not hardcoded. For any other field,
+"not recorded" is a sentence the classifier has never seen during training, so its output would
+have no empirical basis: those fields are required.
 
 Usage:
     from inference import predict_record
@@ -53,15 +42,13 @@ import os
 
 import numpy as np
 import pandas as pd
-from sklearn.linear_model import LogisticRegression
-from sklearn.model_selection import train_test_split
 
 from embedding import (
     generate_embeddings_batch, generate_embeddings_hf,
     record_to_text_diabetes130, record_to_text_heart_disease,
 )
 from function import (
-    columns, columns_diabetes130, get_output_dirs, models_all, optimal_f1_threshold,
+    columns, columns_diabetes130, fit_classifier, get_output_dirs, models_all,
 )
 
 RECORD_TO_TEXT = {
@@ -81,10 +68,9 @@ _missing_eligible_cache = {}
 
 
 def _missing_eligible_columns(dataset, dirs):
-    """Which columns got a "<col>_missing" indicator in the run that produced this dataset's
-    saved training embeddings — read from X_train_raw.csv's own header (preprocessing.py,
-    capitolo 21.2), not hardcoded, so this can never silently drift out of sync with a rerun
-    that used a different MISSING_INDICATOR_THRESHOLD, sample, or dataset revision."""
+    """Columns that are missing in at least one record of the training split this dataset's
+    saved embeddings were generated from (X_train_raw.csv, written by preprocessing.py with
+    missing values as empty cells). Only for these has the classifier seen "not recorded"."""
     if dataset in _missing_eligible_cache:
         return _missing_eligible_cache[dataset]
 
@@ -92,10 +78,12 @@ def _missing_eligible_columns(dataset, dirs):
     if not os.path.exists(raw_path):
         raise FileNotFoundError(
             f"{raw_path} not found: run `python main.py --dataset {dataset}` first "
-            "(inference reads which columns got a missing-value indicator from this file)."
+            "(inference reads which fields were ever missing in training from this file)."
         )
-    header = pd.read_csv(raw_path, nrows=0).columns
-    eligible = [c[: -len("_missing")] for c in header if c.endswith("_missing")]
+    # keep_default_na=False + na_values=[""]: only an empty cell is missing. Diabetes130's
+    # "None" ("test not performed") is a category, not a missing value.
+    X_raw = pd.read_csv(raw_path, keep_default_na=False, na_values=[""])
+    eligible = [c for c in X_raw.columns if X_raw[c].isna().any()]
     _missing_eligible_cache[dataset] = eligible
     return eligible
 
@@ -125,34 +113,24 @@ def _model_config(model_name):
 
 
 def _prepare_row(record, dataset, dirs):
-    """Build the pandas Series record_to_text_*() expects: the raw values the caller supplied,
-    plus a "<col>_missing" flag for every column eligible for it (1 for a value the caller left
-    unset or gave as None/NaN, 0 otherwise). Missingness is checked with pd.isna() rather than
-    `is None`, so a caller passing float('nan') on a *required* field cannot silently slip past
-    this check and reach record_to_text_*() as an unflagged NaN — its own "not recorded"
-    fallback for a stray NaN (a safety net that should never fire once a value is imputed,
-    capitolo 31.3) would otherwise mask exactly the fabrication this function exists to
-    prevent."""
+    """Build the pandas Series record_to_text_*() expects from the caller's raw values. A value
+    left unset (absent, None or NaN — checked with pd.isna(), so a float NaN cannot slip past) is
+    accepted only for fields that were missing in training too, and becomes "not recorded"."""
     eligible = _missing_eligible_columns(dataset, dirs)
-    row = dict(record)
-    missing_used = []
-    for col in eligible:
-        if pd.isna(row.get(col)):
-            row[col] = np.nan
-            row[f"{col}_missing"] = 1
-            missing_used.append(col)
-        else:
-            row[f"{col}_missing"] = 0
+    row = {c: record.get(c, np.nan) for c in _REQUIRED_FIELDS[dataset]}
+    unset = [c for c, v in row.items() if pd.isna(v)]
+    for col in unset:
+        row[col] = np.nan
 
-    absent = [c for c in _REQUIRED_FIELDS[dataset] if c not in eligible and pd.isna(row.get(c))]
+    absent = [c for c in unset if c not in eligible]
     if absent:
         raise ValueError(
-            f"Missing required field(s) for dataset '{dataset}': {absent}. Only "
-            f"{eligible} may be left unset (they become \"not recorded\", exactly how the "
-            "trained model was taught to read a value that was never measured); every other "
-            "field must be supplied, because this project does not persist the training-time "
-            "imputation statistics that would let it be filled in without fabricating data."
+            f"Missing required field(s) for dataset '{dataset}': {absent}. Only {eligible} may "
+            "be left unset: they were missing in some training records too, so the classifier "
+            "has learned what \"not recorded\" means for them. For any other field it never saw "
+            "that text, and a prediction would have no empirical basis."
         )
+    missing_used = [c for c in unset if c in eligible]
     return pd.Series(row), missing_used
 
 
@@ -163,13 +141,7 @@ def _fit_classifier(model, dataset, dirs):
 
     X = np.load(os.path.join(dirs["embeddings"], model["filename"]), allow_pickle=True)
     y = np.load(os.path.join(dirs["embeddings"], model["filename_label"]), allow_pickle=True)
-    X_fit, X_calib, y_fit, y_calib = train_test_split(
-        X, y, test_size=0.2, random_state=42, stratify=y
-    )
-    classifier = LogisticRegression(max_iter=2000)
-    classifier.fit(X_fit, y_fit)
-    calib_score = classifier.predict_proba(X_calib)[:, 1]
-    tau = optimal_f1_threshold(y_calib, calib_score)
+    classifier, tau, _ = fit_classifier(X, y)
 
     _classifier_cache[cache_key] = (classifier, tau)
     return classifier, tau
@@ -187,16 +159,15 @@ def predict_record(record, dataset="heart_disease", model_name=None):
     """Predict the target for one new, unlabeled clinical record.
 
     record: dict of raw feature values (see function.columns / columns_diabetes130 for the
-        exact field names). A column this dataset's saved run flagged as missing too often to
-        impute honestly may be omitted or set to None/NaN; every other field is required (see
-        module docstring for why).
+        exact field names). A field that was missing in some training record may be omitted or
+        set to None/NaN; every other field is required (see module docstring for why).
     dataset: "heart_disease" (default) or "diabetes130".
     model_name: one of the 7 configured model_name values in function.models_all. Defaults to
         the model with the highest mean AUC for this dataset (encoder_comparison_summary.csv).
 
     Returns a dict: dataset, model, text (the generated sentence actually embedded),
-    probability, threshold, prediction (0/1), missing_fields (the eligible columns actually
-    left unset for this call).
+    probability, threshold, prediction (0/1), missing_fields (the fields left unset for this
+    call, written as "not recorded").
     """
     dirs = get_output_dirs(dataset)  # raises ValueError for an unknown dataset
     if model_name is None:

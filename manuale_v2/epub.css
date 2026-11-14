@@ -1,0 +1,18 @@
+body { font-family: serif; line-height: 1.4; }
+h1, h2, h3, h4 { font-family: sans-serif; }
+h1 { page-break-before: always; }
+code, pre { font-family: monospace; }
+pre { white-space: pre-wrap; word-wrap: break-word; font-size: 0.85em; }
+table { width: 100%; border-collapse: collapse; font-size: 0.85em; }
+th, td { border: 1px solid #888; padding: 0.3em 0.5em; text-align: left; }
+img { max-width: 100%; height: auto; }
+blockquote { border-left: 3px solid #888; margin-left: 0; padding-left: 1em; font-style: normal; }
+figure { margin: 1em 0; text-align: center; }
+figcaption { font-size: 0.85em; font-style: italic; margin-top: 0.3em; }
+.formula { margin: 0.8em 0; text-align: center; overflow-x: auto; }
+.titolo { text-align: center; margin-top: 30%; }
+.titolo h1 { page-break-before: avoid; }
+.sottotitolo { font-size: 1.1em; }
+.data { margin-top: 2em; font-size: 0.9em; }
+th { background: #eee; }
+blockquote { background: #f6f8fb; padding: 0.4em 0.8em; }

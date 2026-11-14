@@ -160,3 +160,110 @@ python main.py --dataset heart_disease   # full pipeline, real Ollama + Hugging 
 
 `datas/heart_disease/results/holdout_evaluation.csv` and the new "Held-Out Test Set Evaluation"
 section of `datas/heart_disease/reports/report.md` are the concrete, new output of fix 1.
+
+---
+
+# Changes — corrections ported from `chatbot-forecast`
+
+Branch `fix/port-chatbot-corrections`. The `chatbot-forecast` repository (a single-encoder
+deployment of this pipeline) fixed several methodological issues that were still present here.
+This branch ports them to the 7-model comparison.
+
+## 11. No oversampling: SMOTENC before cross-validation measured synthetic-record detection
+
+**Before:** `preprocessing.py` balanced the training pool with SMOTENC, then `classification.py`
+ran 5-fold CV on the balanced pool. On Diabetes130 (~11% positive in that run) 12,428 of the 14,214
+positives (87%) were synthetic, interpolated from neighbours that sat in the other folds. Recomputed
+from the saved out-of-fold predictions of that run (sentence-biobert): CV AUC 0.765 overall, but
+**0.558 on real records only**, and 0.794 for real negatives against synthetic positives. The
+held-out test AUC was 0.552. Every model showed the same pattern (test AUC 0.48–0.55), so the
+Diabetes130 tables, bootstrap CIs, DeLong tests and family comparison all measured how recognisable
+synthetic records were. On Heart Disease the effect was negligible (78 synthetic records).
+
+**After:** no oversampling anywhere. Validation folds and the test split keep the real class
+distribution; class imbalance is handled by the decision threshold (fix 13). `imbalanced-learn`
+was removed from `requirements.txt`.
+
+## 12. No imputation of the records that get embedded
+
+**Before:** missing values were imputed (median/mode) and a `<col>_missing` indicator was added for
+columns missing in >30% of the training split, so that `record_to_text_*()` could still write
+"not recorded" for those.
+
+**After:** a missing value simply stays missing and is written as "not recorded", for every field.
+This is the same representation an unknown answer gets at inference time. The indicator machinery
+(`MISSING_INDICATOR_THRESHOLD`, `columns_needing_missing_indicator`, `add_missing_indicators`,
+`_masked`) is gone. Imputation survives only on a *copy* of the training split used for the UMAP
+projection and correlation heatmap, which cannot take NaN. `inference.py` now allows a field to be
+left unset only if it is missing in at least one training record (empty cell in
+`X_train_raw.csv`): for any other field "not recorded" is text the classifier never saw.
+
+## 13. Threshold from an inner CV; classifier fit on the whole training partition
+
+**Before:** each fold's training partition was split 80/20; the classifier was fit on the 80% and
+the threshold chosen on the 20%.
+
+**After:** `function.out_of_fold_threshold()` chooses the F1-optimal threshold on out-of-fold scores
+of an inner 5-fold CV over the training partition, then the classifier is fit on the whole
+partition. Used by `classification.py` (per outer fold), `holdout_evaluation.py` and `inference.py`
+(on the whole training pool). No data is set aside only for calibration, and the threshold still
+never sees the labels it is evaluated on.
+
+## 14. Diabetes130 loading
+
+**Before:** `load_diabetes130()` read the CSV with pandas' default NA strings, so `"None"` in
+`max_glu_serum`/`A1Cresult` ("test not performed", the majority value) became NaN; repeated
+encounters of the same patient could fall in both train and test; encounters ending in death or
+hospice discharge, for which readmission is not defined, were kept.
+
+**After:** `keep_default_na=False` (only `"?"` is missing; `"None"` stays a category); encounters
+with `discharge_disposition_id` in 11, 13, 14, 19, 20, 21 are removed; only the first encounter per
+`patient_nbr` is kept (69,990 encounters before sampling); `"Unknown/Invalid"` gender becomes
+missing. `main.py` now passes the test split to the embedding phase in memory instead of
+re-reading `X_test_raw.csv`, which would have turned `"None"` into NaN again.
+
+## 15. Hugging Face encoders no longer truncate the sentences
+
+**Before:** `SentenceTransformer` was used with each model's default `max_seq_length` (100 tokens
+for sentence-biobert). The clinical sentences are longer, so the last fields of every record
+(`ca`, `thal`, or the diabetes medication fields) never reached the model.
+
+**After:** `max_seq_length = HF_MAX_SEQ_LENGTH = 512` (`function.py`).
+
+## 16. Smaller fixes
+
+- `thal` is the thallium stress test result, not thalassemia: the text now reads
+  `thallium stress test: ...`, and `reversable` is spelled `reversible`.
+- `classification.py` and `holdout_evaluation.py` also report PR-AUC and Brier score; the holdout
+  table adds precision, recall and prevalence. With 9% prevalence on Diabetes130, accuracy and
+  macro-F1 alone are misleading.
+- `generatereport.py` no longer claims a 50% majority-class baseline "by construction" (that held
+  only for the SMOTE-balanced pool).
+- README and `docs/DATASET.md`: Heart Disease has 920 records (736 train / 184 test), not 297.
+
+## 17. Standardized embeddings and per-encoder regularization
+
+**Before:** every encoder was probed with `LogisticRegression(C=1)` on raw vectors. Ollama returns
+unit-norm vectors (per-dimension std ~0.005), sentence-transformers returns vectors of norm ~11-13
+(per-dimension std 0.03-0.13) for the three Hugging Face models. The same L2 penalty was therefore
+far stronger for the general-purpose encoders. Re-running the Heart Disease CV with standardized
+inputs and a CV-tuned C narrowed the general-purpose vs biomedical gap from ~3.8 to ~1 AUC point,
+and cross-family DeLong comparisons significant after BH dropped from 12/12 to 4/12
+(`manuale_v2/analisi/scala_embedding.py`).
+
+**After:** `function.make_classifier(C)` = `StandardScaler` + `LogisticRegression`; `choose_C()`
+picks C from `C_GRID = logspace(-3, 2, 6)` by inner 5-fold CV (ROC-AUC); `fit_classifier()` chooses
+C, then the out-of-fold threshold with that C, then fits on all the data. Used by
+`classification.py` (per outer fold), `holdout_evaluation.py` and `inference.py`. The chosen C is
+saved (`C_median` in `model_performance.csv`, `C` in `holdout_evaluation.csv`). A regression test
+checks that scaling all embeddings by a constant changes neither C, threshold nor scores.
+
+## Notes and still open
+
+- Wilcoxon and paired t-tests on the 10,000 bootstrap resamples are kept on purpose (they are
+  reported in the thesis). With 10,000 paired resamples they are very powerful, so even differences
+  of a few thousandths are significant: report each p-value next to the difference in means and the
+  confidence intervals. DeLong on the out-of-fold predictions complements them for ROC-AUC.
+- Both datasets are regenerated with this branch (fixes 11-17). The first-edition manual
+  (`manuale/`) describes the previous pipeline; `manuale_v2/` describes this one.
+

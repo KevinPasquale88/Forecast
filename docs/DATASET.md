@@ -14,7 +14,7 @@ The dataset used in this project is the **UCI Heart Disease dataset** from the [
   - University Hospital, Zurich, Switzerland
   - V.A. Medical Center, Long Beach VA (USA)
 - **Clinical context**: Structured clinical and diagnostic data from cardiac patients undergoing clinical evaluation for heart disease presence/absence.
-- **Total records**: 297 instances from combined centers
+- **Total records**: 920 instances from the four combined centers (Cleveland 303, Hungary 294, Switzerland 123, Long Beach VA 200); 736 train / 184 test
 - **Original attributes**: 76 features in the full dataset
 - **Features commonly used**: 14 clinical attributes (as per literature standard)
 - **Target**: Binary classification (0 = no disease, 1 = disease present)
@@ -51,9 +51,9 @@ Loading and concatenating these files is handled by `preprocessing.py::load_hear
 
 ## Limitations
 - **Temporal**: Historical data from the 1980s-1990s; may not reflect current diagnostic standards
-- **Representation**: Imbalanced class distribution in the original data (addressed via SMOTENC in preprocessing)
+- **Representation**: 55% positive after binarization; no oversampling is applied (the decision threshold is chosen from data instead)
 - **Geographic bias**: Data predominantly from Western medical centers
-- **Missing values**: Some records contain missing attributes handled through imputation. Beyond the `?` placeholder, some source files (Switzerland, Hungary) encode missing cholesterol/resting blood pressure as `0`, which is not a physiologically valid value for either — `load_heart_disease()` in [preprocessing.py](../preprocessing.py) converts these to `NaN` before imputation
+- **Missing values**: Some records contain missing attributes (`ca` and `thal` in most records of three of the four centres). They are not imputed: they become `not recorded` in the text. Because missingness is concentrated in some centres, `not recorded` can partly reveal the source centre and its prevalence. Beyond the `?` placeholder, some source files (Switzerland, Hungary) encode missing cholesterol/resting blood pressure as `0`, which is not a physiologically valid value for either — `load_heart_disease()` in [preprocessing.py](../preprocessing.py) converts these to `NaN`
 
 ## Methodological Context
 **Important clarification**: This project's contribution is NOT a direct classification task on tabular data. Rather, it implements a **tabular-to-text transformation pipeline** where:
@@ -75,7 +75,7 @@ This approach bridges structured clinical data and semantic embeddings, enabling
 The **Diabetes 130-US Hospitals dataset (1999–2008)** from the [UCI Machine Learning Repository](https://archive.ics.uci.edu/dataset/296/diabetes+130-us+hospitals+for+years+1999-2008) contains records of hospital encounters for patients with diabetes, collected across 130 US hospitals and integrated delivery networks over 10 years.
 
 **Dataset Characteristics:**
-- **Scale**: ~100,000 hospital encounters in the original file; the pipeline stratified-samples **20,000 encounters** by default (`sample_size` in `load_diabetes130()`, [function.py](../function.py)) to keep runtime tractable
+- **Scale**: 101,766 hospital encounters in the original file. Encounters discharged to hospice or deceased (`discharge_disposition_id` 11, 13, 14, 19, 20, 21) are removed, since readmission is not defined for them, and only the first encounter per patient (`patient_nbr`) is kept, so no patient appears in both train and test: 69,990 encounters remain. The pipeline stratified-samples **20,000 encounters** by default (`sample_size` in `load_diabetes130()`, [function.py](../function.py)) to keep runtime tractable
 - **Clinical context**: Inpatient encounters for diabetic patients, including admission/discharge circumstances, lab results, medications, and prior utilization of care
 - **Target**: Binarized to the standard early-readmission benchmark task — **1 = readmitted within 30 days, 0 = readmitted later or not at all** (`readmitted` column, binarized in `load_diabetes130()`)
 
@@ -94,7 +94,8 @@ Loading, column filtering, target binarization, and stratified sampling are hand
 
 ### Data Characteristics
 - **Data type**: Structured/tabular hospital encounter records (NOT raw clinical notes)
-- **Missing values**: Encoded as `?` in the source CSV and loaded as `NaN` (`na_values="?"`), then handled through the same imputation pipeline as the heart disease dataset
+- **Missing values**: Encoded as `?` in the source CSV and loaded as `NaN` (`na_values="?"`), written as `not recorded` in the text (only `race`, ~3%, and a handful of `gender` values). The string `None` in `max_glu_serum`/`A1Cresult` means "test not performed" and is kept as a category (`keep_default_na=False`), not treated as missing
+- **Class balance**: ~9% positive; no oversampling is applied
 
 ### Ethical and Privacy Considerations
 - The dataset is de-identified and publicly available

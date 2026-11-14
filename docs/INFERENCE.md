@@ -52,23 +52,18 @@ process, so repeated calls in one session only pay the fit cost once. That cache
 invalidated — if a dataset's embeddings are regenerated (`python main.py --dataset ...`) in the
 same long-running process, call `predict_record()` again from a fresh process to pick it up.
 
-**The decision threshold is calibrated on a slice the classifier never trained on**, the same
-fit/calibrate split already used by `classification.py` and `holdout_evaluation.py` (see
-"Differences from the chatbot's approach" below, and manual capitolo 23.2): the classifier fits
-on 80% of the full training-pool embeddings, `function.optimal_f1_threshold()` picks the
-threshold on the other 20%, and only then is the new record scored.
+**The decision threshold is chosen without touching the classifier's own fit**, with the same
+protocol as `classification.py`/`holdout_evaluation.py`: the F1-optimal threshold is picked on
+out-of-fold scores of a 5-fold CV over the whole training pool (`function.out_of_fold_threshold()`),
+then the classifier is fit on the whole training pool, and only then is the new record scored.
 
-**A field may be left unset only for columns this dataset's own saved run flagged as missing
-too often to impute honestly.** Which columns those are is read directly from
-`X_train_raw.csv`'s header (the `<col>_missing` columns `preprocessing.py` adds, manual
-capitolo 21.2) — not hardcoded — so it can never silently drift out of sync with a rerun that
-used a different `MISSING_INDICATOR_THRESHOLD`, sample, or dataset revision. For those columns,
-`record_to_text_*()`'s existing `"not recorded"` handling is reused as-is: the caller says "I
-don't know this," the generated text says exactly what the model was trained to expect for a
-value that was never measured. Every other field is required outright, because this project
-never persists the training-time imputation statistics (`fit_imputation_values()` computes
-them fresh, in memory, once per run) that would let a missing value on any other field be
-filled in without fabricating data — inference refuses to guess instead of doing that silently.
+**A field may be left unset only if it was missing in training too.** The pipeline never imputes:
+a missing training value is written as `"not recorded"` in the text. Which fields were ever
+missing is read directly from `X_train_raw.csv` (empty cells), not hardcoded. For those fields the
+classifier has learned what `"not recorded"` means; for every other field that sentence never
+occurred during training, so a prediction would have no empirical basis, and inference refuses it.
+On the current data this allows `trestbps`, `chol`, `fbs`, `thalach`, `exang`, `oldpeak`, `slope`,
+`ca`, `thal` for Heart Disease, and only `race`/`gender` for Diabetes130.
 
 **The default model is chosen empirically, per dataset.** `predict_record()` defaults to the
 model with the highest mean AUC in `encoder_comparison_summary.csv` — the same number the
@@ -86,16 +81,12 @@ if minor, issues are handled differently here:
 1. **Threshold/classifier alignment.** The chatbot's `_load_deployed_bundle()` fits a fresh
    classifier on 100% of the training embeddings, but reuses the decision threshold from
    `model_performance.csv` — the mean of the five per-fold thresholds computed during
-   cross-validation by *different* classifiers, each trained on only 4/5 of the data. The
-   threshold and the classifier it is paired with were never calibrated together.
-   `inference.py` avoids this by fitting and calibrating on the same split, the same pattern
-   already established for `classification.py`/`holdout_evaluation.py`.
-2. **Missing values.** A chatbot conversation collects a real answer to every question by
-   construction, so it never exercises the model's `"not recorded"` path for `ca`/`thal` —
-   fields imputed for the majority of training records (manual capitolo 29.3) — even though
-   those are exactly the fields most often genuinely unknown in practice.  `inference.py`
-   lets a caller mark those fields explicitly unknown, producing text the model was actually
-   trained to interpret that way.
+   cross-validation by *different* classifiers. `inference.py` derives the threshold for the
+   classifier it actually uses (out-of-fold scores on the same training pool).
+2. **Missing values.** `inference.py` accepts "unknown" only for fields that were missing in some
+   training records, so `"not recorded"` is always text the model was trained on. (The later
+   `chatbot-forecast` repository accepts "Non lo so" for every question, including the 17 of 19
+   Diabetes130 fields that are never missing in training.)
 
 What it does **not** add: a conversational interface, input validation prompts for a
 non-technical end user, or any clinical validation of the resulting predictions. It is a
@@ -107,11 +98,10 @@ does not mean.
 
 ## Tests
 
-`tests/test_inference.py` covers the pure logic — reading the missing-eligible columns from a
-fake `X_train_raw.csv`, picking the best model from a fake summary CSV, model-name lookup, and
+`tests/test_inference.py` covers the pure logic — reading the missing-eligible columns (empty cells,
+with Diabetes130's `None` category not counted as missing) from a fake `X_train_raw.csv`, picking the best model from a fake summary CSV, model-name lookup, and
 every branch of the required/optional field validation, including the NaN-vs-`None` edge case
-(`record_to_text_*()` treats a stray NaN as `"not recorded"` regardless of whether an indicator
-column exists, so checking `value is None` alone would let a NaN on a *required* field slip
+(`record_to_text_*()` writes any NaN as `"not recorded"`, so checking `value is None` alone would let a NaN on a *required* field slip
 past validation unflagged — `pd.isna()` is used throughout instead). It does not cover
 `_embed_one()` or `_fit_classifier()`, which need a running Ollama server / cached Hugging Face
 model or real saved embeddings respectively — the same boundary `tests/test_embedding.py`
