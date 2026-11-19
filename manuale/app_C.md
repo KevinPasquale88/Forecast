@@ -14,20 +14,20 @@ $$\min_{\mathbf{w}, b} \;\; \frac{1}{2}\mathbf{w}^\top \mathbf{w} + C \sum_{i=1}
 **33.1 — K-fold (capitolo 33.2, `classification.py:15`)**
 $$\text{per } i = 1, \dots, k: \quad \text{addestra su } \bigcup_{j \neq i} D_j, \quad \text{valuta su } D_i$$
 
-**34.1 — Accuracy (capitolo 34.1, `classification.py:39`)**
+**34.1 — Accuracy (capitolo 34.1, `classification.py:46`)**
 $$\text{Accuracy} = \frac{VP + VN}{VP + VN + FP + FN}$$
 
-**34.2 — F1 (capitolo 34.2, `classification.py:40`)**
+**34.2 — F1 (capitolo 34.2, `classification.py:47`)**
 $$F1 = 2 \cdot \frac{\text{precisione} \cdot \text{recall}}{\text{precisione} + \text{recall}}, \quad \text{precisione} = \frac{VP}{VP+FP}, \quad \text{recall} = \frac{VP}{VP+FN}$$
 
-**34.3 — TPR/FPR per la curva ROC (capitolo 34.3, `function.py:264`)**
+**34.3 — TPR/FPR per la curva ROC (capitolo 34.3, `function.py:287`)**
 $$\text{TPR}(\tau) = \frac{VP(\tau)}{VP(\tau)+FN(\tau)}, \qquad \text{FPR}(\tau) = \frac{FP(\tau)}{FP(\tau)+VN(\tau)}$$
 
-**35.1 — Soglia F1-ottima (capitolo 35.2, `classification.py:30-35`)**
-$$\tau^\star = \operatorname*{arg\,max}_{\tau \in T} \; F1\big(y_{\text{val}},\, \mathbb{1}[y_{\text{score}} \geq \tau]\big)$$
+**35.1 — Soglia F1-ottima su fetta di calibrazione, implementazione attuale (capitolo 35.2, `function.py:177-191`)**
+$$\tau^\star = \operatorname*{arg\,max}_{\tau \in T} \; F1\big(y_{\text{calib}},\, \mathbb{1}[y_{\text{score,calib}} \geq \tau]\big), \; \text{valutato su } y_{\text{val}} \neq y_{\text{calib}}$$
 
-**35.2 — Soglia con calibrazione separata, non implementata (capitolo 35.3)**
-$$\tau^\star_{\text{rigoroso}} = \operatorname*{arg\,max}_{\tau \in T} \; F1\big(y_{\text{calib}},\, \mathbb{1}[y_{\text{score,calib}} \geq \tau]\big), \; \text{valutato su } y_{\text{val}} \neq y_{\text{calib}}$$
+**35.2 — Soglia scelta sul fold di validazione, versione storica corretta dal fix (capitolo 35.3)**
+$$\tau^\star_{\text{storico}} = \operatorname*{arg\,max}_{\tau \in T} \; F1\big(y_{\text{val}},\, \mathbb{1}[y_{\text{score}} \geq \tau]\big), \; \text{valutato sullo stesso } y_{\text{val}}$$
 
 **36.1 — Ricampionamento bootstrap (capitolo 36.1, `evaluation.py:66`)**
 $$I^{(b)} = \{i_1, \dots, i_n\}, \quad i_j \sim \mathcal{U}\{1, \dots, n\} \text{ indipendenti}, \qquad b = 1, \dots, B$$
@@ -41,11 +41,11 @@ $$\text{IC}_{\alpha} = \big[\, \hat{M}_{(0.025)}, \; \hat{M}_{(0.975)} \,\big]$$
 **36.4 — Deviazione standard bootstrap (capitolo 36.2, `evaluation.py:37`)**
 $$\widehat{SE}_{\text{boot}}(M) = \sqrt{\frac{1}{B-1}\sum_{b=1}^{B}\big(\hat{M}^{(b)} - \bar{M}\big)^2}$$
 
-**37.1 — Wilcoxon signed-rank (capitolo 37.1, `statisticaltest.py:35`)**
+**37.1 — Wilcoxon signed-rank (capitolo 37.1, `statisticaltest.py:63`)**
 $$W = \min(W^+, W^-), \qquad W^+ = \sum_{i:\, d_i > 0} R_i, \quad W^- = \sum_{i:\, d_i < 0} R_i$$
 
-**37.2 — t-test appaiato (capitolo 37.2, `statisticaltest.py:48`)**
+**37.2 — t-test appaiato (capitolo 37.2, `statisticaltest.py:76`)**
 $$t = \frac{\bar{d}}{s_d / \sqrt{n}}$$
 
-**37.3 — Test di DeLong (capitolo 37.3, `statisticaltest.py:95`, delegato a `MLstatkit`)**
+**37.3 — Test di DeLong (capitolo 37.3, `statisticaltest.py:125`, delegato a `MLstatkit`)**
 $$Z = \frac{\widehat{\text{AUC}}_A - \widehat{\text{AUC}}_B}{\sqrt{\widehat{\text{Var}}(\widehat{\text{AUC}}_A) + \widehat{\text{Var}}(\widehat{\text{AUC}}_B) - 2\,\widehat{\text{Cov}}(\widehat{\text{AUC}}_A, \widehat{\text{AUC}}_B)}}$$

@@ -1,10 +1,9 @@
 import os
 import numpy as np
 import pandas as pd
-from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import accuracy_score, f1_score, roc_auc_score
-from sklearn.model_selection import StratifiedKFold, train_test_split
-from function import models_all, plot_metric_comparison, results, get_output_dirs, optimal_f1_threshold
+from sklearn.metrics import accuracy_score, average_precision_score, brier_score_loss, f1_score, roc_auc_score
+from sklearn.model_selection import StratifiedKFold
+from function import models_all, plot_metric_comparison, results, get_output_dirs, fit_classifier
 
 def training_classifier(dataset="heart_disease"):
     dirs = get_output_dirs(dataset)
@@ -13,7 +12,6 @@ def training_classifier(dataset="heart_disease"):
         X = np.load(os.path.join(dirs["embeddings"], model['filename']), allow_pickle=True)
         y = np.load(os.path.join(dirs["embeddings"], model['filename_label']), allow_pickle=True)
         kf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
-        logisticReg = LogisticRegression(max_iter=2000)
         tmp_results = []
         all_y_scores = []
         all_y_preds  = []
@@ -23,21 +21,11 @@ def training_classifier(dataset="heart_disease"):
             X_train_full, X_val = X[train_idx], X[val_idx]
             y_train_full, y_val = y[train_idx], y[val_idx]
 
-            # Calibrate the decision threshold on a slice carved out of this fold's own training
-            # partition, never on y_val: choosing tau by maximizing F1 on the same labels the
-            # fold's accuracy/F1 are then reported on was optimistic (a mild, threshold-only form
-            # of leakage — the classifier itself never saw y_val, only tau did; see
-            # docs/CHANGES.md). The classifier is now fit on 80% of the fold's training data
-            # instead of all of it, trading a little training data for a threshold that owes
-            # nothing to the fold it is evaluated on.
-            X_train, X_calib, y_train, y_calib = train_test_split(
-                X_train_full, y_train_full, test_size=0.2, random_state=42, stratify=y_train_full
-            )
-            # train
-            logisticReg.fit(X_train, y_train)
-            # choose optimal threshold on the calibration slice, not on X_val/y_val
-            calib_score = logisticReg.predict_proba(X_calib)[:, 1]
-            tau = optimal_f1_threshold(y_calib, calib_score)
+            # Inside this fold's training partition only: C chosen by inner CV (embeddings are
+            # standardized, see function.make_classifier), threshold chosen on out-of-fold scores
+            # with that C, classifier fit on the whole partition. Class imbalance is handled by
+            # the threshold: there is no oversampling (see preprocessing.py).
+            logisticReg, tau, C = fit_classifier(X_train_full, y_train_full)
             # positive probabilities on the untouched validation fold
             y_score = logisticReg.predict_proba(X_val)[:, 1]
             # prediction with optimized threshold
@@ -46,7 +34,9 @@ def training_classifier(dataset="heart_disease"):
             acc = accuracy_score(y_val, y_pred)
             f1 = f1_score(y_val, y_pred, average='macro')
             auc = roc_auc_score(y_val, y_score)
-            tmp_results.append((acc, f1, auc, tau))
+            pr_auc = average_precision_score(y_val, y_score)
+            brier = brier_score_loss(y_val, y_score)
+            tmp_results.append((acc, f1, auc, tau, pr_auc, brier, C))
             all_y_true.append(y_val)
             all_y_scores.append(y_score)
             all_y_preds.append(y_pred)
@@ -55,15 +45,24 @@ def training_classifier(dataset="heart_disease"):
         f1_mean  = np.mean([r[1] for r in tmp_results])
         auc_mean = np.mean([r[2] for r in tmp_results])
         tau_mean = np.mean([r[3] for r in tmp_results])
+        pr_auc_mean = np.mean([r[4] for r in tmp_results])
+        brier_mean = np.mean([r[5] for r in tmp_results])
+        C_median = float(np.median([r[6] for r in tmp_results]))
         results[model['model_name']] = {
             "acc": acc_mean,
             "f1":  f1_mean,
             "auc": auc_mean,
-            "tau": tau_mean
+            "tau": tau_mean,
+            "pr_auc": pr_auc_mean,
+            "brier": brier_mean,
+            "C_median": C_median,
         }
         print(f"Accuracy (mean): {acc_mean:.4f}")
         print(f"Macro-F1 (mean): {f1_mean:.4f}")
         print(f"ROC-AUC (mean): {auc_mean:.4f}")
+        print(f"PR-AUC (mean): {pr_auc_mean:.4f}  (prevalence {y.mean():.4f})")
+        print(f"Brier (mean): {brier_mean:.4f}")
+        print(f"C chosen per fold: {[r[6] for r in tmp_results]}")
         print(f"Mean optimized threshold τ: {tau_mean:.4f}")
         all_y_true  = np.concatenate(all_y_true)
         all_y_scores = np.concatenate(all_y_scores)

@@ -15,13 +15,13 @@
 
 ## 57.2 Misure ancora da produrre, con procedura
 
-**[Fatto]** Tre misure, già proposte nei capitoli precedenti, richiederebbero un nuovo esperimento non condotto in questo libro:
+**[Fatto]** Una delle misure proposte nella stesura originale di questo elenco — le prestazioni sul test set finale indipendente (capitolo 55.1) — è stata nel frattempo prodotta dalla pipeline stessa: `holdout_evaluation.csv` esiste per entrambi i dataset e i suoi numeri sono nelle Tabelle 44.1bis e 45.1bis. Restano da produrre:
 
-1. **Prestazioni sul test set finale indipendente** (capitolo 55.1). Procedura: modificare `preprocessing_data()` per restituire anche `X_test`/`y_test`; imputare il test set con le statistiche del training set; generare embedding per il test set con i sette modelli; applicare i classificatori già addestrati (senza riaddestrarli) e calcolare le tre metriche.
-2. **Confronto con un classificatore non lineare** (capitolo 55.2). Procedura: sostituire `LogisticRegression` con `GradientBoostingClassifier` in una copia di `classification.py`, a parità di ogni altro passaggio; ripetere bootstrap e test statistici sui nuovi risultati; confrontare con le Tabelle 44.1-45.1 esistenti.
-3. **Entità precisa dell'ottimismo da soglia** (esercizio del capitolo 35.3). Procedura: per ciascun modello già presente in `datas/`, ricalcolare F1 con $\tau=0.5$ fisso usando i file `{model}_y_true.npy`/`{model}_y_score.npy` già disponibili, e confrontare con l'F1 riportato nelle tabelle esistenti — non richiede nemmeno riaddestrare nulla, solo ricalcolare una metrica su dati già presenti.
+1. **Confronto con un classificatore non lineare** (capitolo 55.2). Procedura: sostituire `LogisticRegression` con `GradientBoostingClassifier` in una copia di `classification.py`, a parità di ogni altro passaggio; ripetere bootstrap e test statistici sui nuovi risultati; confrontare con le Tabelle 44.1-45.1 esistenti.
+2. **Effetto della soglia ottimizzata rispetto a $\tau=0.5$** (esercizio del capitolo 35.3). Procedura: per ciascun modello già presente in `datas/`, ricalcolare F1 con $\tau=0.5$ fisso usando i file `{model}_y_true.npy`/`{model}_y_score.npy` già disponibili, e confrontare con l'F1 riportato nelle tabelle esistenti — non richiede nemmeno riaddestrare nulla, solo ricalcolare una metrica su dati già presenti.
+3. **Incertezza sulla misura holdout** (capitolo 43.3, capitolo 55.1). Procedura: bootstrap sui casi del test set (ricampionare le 184/4.000 predizioni già salvabili dalla fase 7) per dare un intervallo di confidenza alle metriche di `holdout_evaluation.csv`, oggi riportate come misura puntuale.
 
-> **PROVA TU —** la terza misura è realizzabile in pochi minuti con i dati già nel repository, senza Ollama né Hugging Face. È il modo più rapido di trasformare uno dei limiti metodologici di questo libro (capitolo 35.3, capitolo 51.2) in un numero concreto per la tua tesi.
+> **PROVA TU —** la seconda misura è realizzabile in pochi minuti con i dati già nel repository, senza Ollama né Hugging Face. È il modo più rapido di trasformare la storia della soglia (capitolo 35.3, capitolo 51.2) in un numero concreto per la tua tesi.
 
 ## 57.3 Riferimenti bibliografici da recuperare e verificare
 
@@ -31,12 +31,12 @@
 
 ## Riepilogo
 
-Questo libro fornisce sei figure Mermaid numerate, oltre dieci tabelle con dati reali, e diciassette formule numerate, tutte pronte per l'uso diretto in tesi. Tre misure aggiuntive richiederebbero un nuovo esperimento, con procedura già delineata per ciascuna — una realizzabile in pochi minuti senza nuovi calcoli pesanti. Cinque riferimenti bibliografici restano da verificare con una fonte esterna prima di poter essere citati con sicurezza.
+Questo libro fornisce sei figure Mermaid numerate, oltre dieci tabelle con dati reali, e diciassette formule numerate, tutte pronte per l'uso diretto in tesi. Delle misure aggiuntive proposte in origine, quella sul test set indipendente è stata realizzata dalla pipeline corretta (le tabelle holdout dei capitoli 44-45); tre restano da produrre, con procedura già delineata per ciascuna — due realizzabili senza nuovi calcoli pesanti. Cinque riferimenti bibliografici restano da verificare con una fonte esterna prima di poter essere citati con sicurezza.
 
 ## Domande di autoverifica
 
-**1. Quale delle tre misure ancora da produrre è realizzabile senza generare nuovi embedding o riaddestrare alcun modello?**
-Il ricalcolo dell'F1 con soglia fissa $\tau=0.5$ sui dati di predizione già salvati (`y_true.npy`/`y_score.npy`): richiede solo di ricalcolare una metrica su file già presenti nel repository.
+**1. Quali delle misure ancora da produrre sono realizzabili senza generare nuovi embedding o riaddestrare alcun modello?**
+Il ricalcolo dell'F1 con soglia fissa $\tau=0.5$ sui dati di predizione già salvati (`y_true.npy`/`y_score.npy`), e il bootstrap sulle predizioni holdout per dare un intervallo di confidenza alla misura puntuale: entrambe richiedono solo di ricalcolare metriche su file già presenti nel repository.
 
 **2. Quanti riferimenti bibliografici sono già verificati con un identificativo concreto in questo libro, e quanti restano da verificare?**
 Quattro sono già verificati con DOI (i due dataset e i loro paper originali); cinque restano marcati `[DA VERIFICARE]` e vanno confermati con una ricerca esterna prima di essere citati.

@@ -271,9 +271,10 @@ def _build_conclusions(summary, stat_results):
     results already loaded for this report — not a fixed claim of general effectiveness that
     held regardless of what the data in a given run actually showed."""
     lines = [
-        "- Every model in this run outperforms a trivial majority-class baseline on the "
-        "SMOTE-balanced validation pool (50.0% accuracy, 0.333 macro-F1 by construction, since "
-        "that pool is always exactly balanced) — see the accuracy/macro-F1 columns above.",
+        "- Validation folds and the test split keep the real class distribution (no oversampling), "
+        "so accuracy must be read against the majority-class rate, not 50%. ROC-AUC is the "
+        "threshold-free reference: 0.5 means no ranking ability; PR-AUC should be compared with "
+        "the prevalence reported in the held-out table.",
         "- Bootstrap resampling (10,000 iterations) gives every metric a reported confidence "
         "interval: treat a numerically higher mean as a meaningful difference only where the "
         "corresponding pairwise test below also reports significance, not from the ranking alone.",

@@ -1,9 +1,4 @@
 import argparse
-import os
-
-import numpy as np
-import pandas as pd
-
 from evaluation import evaluate_results
 from generatereport import generate_report
 from preprocessing import preprocessing_data
@@ -35,18 +30,18 @@ def main():
     delete_files_results(dirs["results"])
     delete_files_graphics(dirs["graphics"])
 
-    #preprocessing phase 1: load, clean, encode, scale data. Also persists a held-out test split
-    #(preprocessing/X_test_raw.csv + y_test.npy), imputed with training-only statistics and
-    #never touched by SMOTENC or by any later training/model-selection step.
-    X,y = preprocessing_data(dataset=args.dataset)
+    #preprocessing phase 1: load the raw records and hold out a stratified 20% test split. No
+    #imputation and no oversampling: missing values become "not recorded" in the text, and the
+    #test split is never touched by any training or model-selection step.
+    X_train, X_test, y_train, y_test = preprocessing_data(dataset=args.dataset)
 
-    #embedding generation phase 2: generate embeddings with ollama, for the training pool...
-    embeddings(X, y, dataset=args.dataset)
+    #embedding generation phase 2: generate embeddings for the training pool...
+    embeddings(X_train, y_train, dataset=args.dataset)
 
     #...and, separately, for the held-out test split, saved under a "_test" filename suffix so
-    #it never overwrites the training embeddings used for cross-validation.
-    X_test = pd.read_csv(os.path.join(dirs["preprocessing"], "X_test_raw.csv"))
-    y_test = np.load(os.path.join(dirs["preprocessing"], "y_test.npy"))
+    #it never overwrites the training embeddings used for cross-validation. Passed in memory, not
+    #re-read from X_test_raw.csv: a CSV round-trip would turn Diabetes130's "None" category
+    #("test not performed") into a missing value.
     embeddings(X_test, y_test, dataset=args.dataset, split="test")
 
     #classification phase 3: train and evaluate classifier
@@ -61,9 +56,8 @@ def main():
     #test phase 6: perform statistical tests and save results
     test_statistical_tests(dataset=args.dataset)
 
-    #holdout phase 7: evaluate a freshly-fit classifier per model on the test split from phase 1
-    #— the generalization estimate the 5-fold cross-validation alone cannot provide, because it
-    #only ever rotates through slices of the same SMOTE-balanced training pool.
+    #holdout phase 7: fit one classifier per model on the whole training pool and measure it once
+    #on the test split from phase 1, with the real class distribution.
     evaluate_holdout(dataset=args.dataset)
 
     #report generation phase 8: create markdown report with results and graphs

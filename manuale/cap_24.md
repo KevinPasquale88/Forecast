@@ -6,7 +6,7 @@
 - Sapere leggere un intervallo di confidenza percentile, con la formula che lo produce.
 - Vedere come i dati raccolti per sette modelli confluiscono in sei grafici diversi.
 
-**[Fatto]** `evaluation.py` (83 righe) è la fase 4 (`main.py:43`): rilegge i risultati salvati da `classification.py`, li arricchisce con un bootstrap di 10.000 iterazioni, e produce la maggior parte dei grafici comparativi del progetto.
+**[Fatto]** `evaluation.py` (83 righe) è la fase 4 (`main.py:56`): rilegge i risultati salvati da `classification.py`, li arricchisce con un bootstrap di 10.000 iterazioni, e produce la maggior parte dei grafici comparativi del progetto.
 
 ## 24.1 Il bootstrap in poche righe
 
@@ -39,7 +39,7 @@ def ci(a, alpha=0.95):
 ```
 Con `alpha=0.95`, `(1-alpha)/2 * 100 = 2.5` e `(1+alpha)/2 * 100 = 97.5`: l'intervallo di confidenza al 95% è, semplicemente, l'intervallo fra il 2.5° e il 97.5° percentile della distribuzione bootstrap — il **metodo percentile**, il più semplice dei diversi modi di costruire un intervallo di confidenza bootstrap, e quello che questo progetto usa. Leggilo così: "il 95% dei 10.000 ricampionamenti ha prodotto un valore di questa metrica compreso in questo intervallo" — non una dichiarazione probabilistica sul valore vero e sconosciuto della metrica, ma sulla variabilità osservata nel ricampionamento.
 
-**[Fatto]** `evaluate_results()` (righe 7-59), la funzione orchestratrice, chiama `bootstrap_metrics()` e `ci()` per ciascuno dei sette modelli, poi passa i risultati a `plot_mean_ci()` (`function.py:302-336`, righe 55 di questo file): il grafico che ne risulta mostra, per ciascun modello, un punto (la media) con due tipi di barra d'errore sovrapposte — quella sottile per l'intervallo di confidenza al 95%, quella spessa per ±1 deviazione standard (`bootstrap_metrics_dict['acc'].std()`, riga 37). Sono due informazioni diverse disegnate insieme: l'intervallo di confidenza dice quanto sei sicuro della stima della media; la deviazione standard dice quanto è dispersa la distribuzione dei singoli ricampionamenti.
+**[Fatto]** `evaluate_results()` (righe 7-59), la funzione orchestratrice, chiama `bootstrap_metrics()` e `ci()` per ciascuno dei sette modelli, poi passa i risultati a `plot_mean_ci()` (`function.py:325-359`, righe 55 di questo file): il grafico che ne risulta mostra, per ciascun modello, un punto (la media) con due tipi di barra d'errore sovrapposte — quella sottile per l'intervallo di confidenza al 95%, quella spessa per ±1 deviazione standard (`bootstrap_metrics_dict['acc'].std()`, riga 37). Sono due informazioni diverse disegnate insieme: l'intervallo di confidenza dice quanto sei sicuro della stima della media; la deviazione standard dice quanto è dispersa la distribuzione dei singoli ricampionamenti.
 
 ## 24.3 Dal dizionario Python al PNG/PDF
 

@@ -8,6 +8,8 @@
 
 **Baseline** — Modello di riferimento banale usato per stabilire un pavimento minimo di prestazione. → capitolo 47.1
 
+**Benjamini-Hochberg, correzione di** — Procedura che aggiusta i p-value di più test simultanei per controllare il false discovery rate: con 21 confronti a coppie per metrica, alcuni p-value grezzi scendono sotto 0.05 per puro caso. Nel progetto affianca (non sostituisce) i p-value grezzi nei tre CSV di confronto. → capitolo 26.2bis
+
 **Bootstrap** — Tecnica di ricampionamento con reinserimento per stimare l'incertezza di una metrica senza assunzioni distributive. → capitolo 36
 
 **Classificazione binaria** — Compito di assegnare un'osservazione a una fra due categorie. → capitolo 4.1
@@ -26,13 +28,19 @@
 
 **F1 (macro)** — Media aritmetica dell'F1 calcolato separatamente per ciascuna classe (Formula 34.2). → capitolo 34.2
 
+**Fetta di calibrazione (della soglia)** — Il 20% della partizione di training di un fold, riservato alla scelta della soglia di decisione: il classificatore si allena sull'altro 80%, la soglia è scelta sulla fetta, la metrica è misurata sul fold di validazione — tre insiemi disgiunti. Da non confondere con la calibrazione delle probabilità. → capitolo 23.2
+
 **Falso positivo / falso negativo** — Un caso negativo classificato come positivo / un caso positivo classificato come negativo. → capitolo 4.3
 
 **Famiglia di modelli** — Categoria di un modello di embedding: generalista, biomedico, biomedico per frasi. → capitolo 5.3
 
 **Generalizzazione** — Capacità di un modello di comportarsi bene su dati mai visti durante l'addestramento. → capitolo 2.3
 
-**Imputazione** — Sostituzione di un valore mancante con una stima (mediana per variabili numeriche, moda per categoriali in questo progetto). → capitolo 21.2
+**Holdout (valutazione)** — Stima di generalizzazione su una porzione di dati (qui il 20%) messa da parte all'inizio e mai usata da addestramento, scelta della soglia o confronto fra modelli: viene consultata una sola volta, alla fine. Nel progetto è la fase 7 (`holdout_evaluation.py`). → capitolo 43
+
+**Imputazione** — Sostituzione di un valore mancante con una stima (mediana per variabili numeriche, moda per categoriali in questo progetto), calcolata sul solo training set e riapplicata identica al test set. → capitolo 21.2
+
+**Indicatore di mancanza (`<col>_missing`)** — Colonna 0/1 aggiunta per ogni feature mancante in oltre il 30% del training set: conserva l'informazione che il valore accanto è imputato, attraversa SMOTENC come feature categoriale, e fa scrivere "not recorded" nel testo generato. → capitolo 21.2
 
 **Inferenza** — Applicazione di un modello già addestrato e validato a un input nuovo, di etichetta ignota. → capitolo 2.2
 

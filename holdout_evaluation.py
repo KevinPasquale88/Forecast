@@ -1,14 +1,15 @@
 """Evaluate each embedding model on a held-out test set that plays no part in training,
 threshold selection, or the model-vs-model comparison of classification.py/statisticaltest.py.
 
-This is the counterpart to the 5-fold cross-validation in classification.py: that loop estimates
-generalization by rotating which slice of the (SMOTE-balanced) training pool is held back each
-time, but the 20% split computed once in preprocessing.py was, before this module existed,
-calculated and then never used for anything (see docs/CHANGES.md). Here, for each model:
+The test split keeps the real class distribution (no oversampling anywhere in the pipeline).
+For each model:
 
-1. A fresh LogisticRegression is fit on 80% of the full training-pool embeddings.
-2. The decision threshold is chosen on the other 20% (a calibration slice, never the test set).
-3. Accuracy, macro-F1 and AUC are computed once, on the test-set embeddings alone.
+1. The regularization C is chosen by inner CV, the decision threshold on out-of-fold scores of a
+   5-fold CV over the whole training pool, both with standardized embeddings
+   (function.fit_classifier).
+2. The classifier (StandardScaler + LogisticRegression) is fit on the whole training pool.
+3. Accuracy, macro-F1, ROC-AUC, PR-AUC, precision, recall and Brier score are computed once, on
+   the test-set embeddings alone.
 
 Every number this module reports comes from data the fitting and thresholding steps never saw.
 """
@@ -16,11 +17,12 @@ import os
 
 import numpy as np
 import pandas as pd
-from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import accuracy_score, f1_score, roc_auc_score
-from sklearn.model_selection import train_test_split
+from sklearn.metrics import (
+    accuracy_score, average_precision_score, brier_score_loss, f1_score, precision_score,
+    recall_score, roc_auc_score,
+)
 
-from function import models_all, get_output_dirs, optimal_f1_threshold
+from function import models_all, get_output_dirs, fit_classifier
 
 
 def _test_filename(train_filename):
@@ -54,16 +56,7 @@ def evaluate_holdout(dataset="heart_disease"):
             )
         X_test = np.load(test_emb_path, allow_pickle=True)
 
-        # Same calibration-split idea as classification.py: fit on 80%, choose tau on the other
-        # 20%, so the threshold owes nothing to the test labels evaluated below.
-        X_fit, X_calib, y_fit, y_calib = train_test_split(
-            X_train_full, y_train_full, test_size=0.2, random_state=42, stratify=y_train_full
-        )
-        classifier = LogisticRegression(max_iter=2000)
-        classifier.fit(X_fit, y_fit)
-
-        calib_score = classifier.predict_proba(X_calib)[:, 1]
-        tau = optimal_f1_threshold(y_calib, calib_score)
+        classifier, tau, C = fit_classifier(X_train_full, y_train_full)
 
         y_score = classifier.predict_proba(X_test)[:, 1]
         y_pred = (y_score >= tau).astype(int)
@@ -74,11 +67,17 @@ def evaluate_holdout(dataset="heart_disease"):
             "accuracy": accuracy_score(y_test, y_pred),
             "macro_f1": f1_score(y_test, y_pred, average="macro"),
             "auc": roc_auc_score(y_test, y_score),
+            "pr_auc": average_precision_score(y_test, y_score),
+            "precision": precision_score(y_test, y_pred, zero_division=0),
+            "recall": recall_score(y_test, y_pred),
+            "brier": brier_score_loss(y_test, y_score),
+            "prevalence": float(np.mean(y_test)),
             "threshold": tau,
+            "C": C,
         }
         rows.append(row)
         print(f"Accuracy: {row['accuracy']:.4f}  Macro-F1: {row['macro_f1']:.4f}  "
-              f"AUC: {row['auc']:.4f}  (n={row['n_test']}, tau={tau:.4f})")
+              f"AUC: {row['auc']:.4f}  PR-AUC: {row['pr_auc']:.4f}  (n={row['n_test']}, tau={tau:.4f})")
 
     df = pd.DataFrame(rows)
     out_path = os.path.join(dirs["results"], "holdout_evaluation.csv")

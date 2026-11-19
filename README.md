@@ -4,7 +4,7 @@ Automatic disease prediction from clinical datasets using a fully local pipeline
 
 ```mermaid
 flowchart LR
-    A[Raw UCI data\nHeart Disease / Diabetes130] --> B[Preprocessing\nimpute · SMOTENC · scale]
+    A[Raw UCI data\nHeart Disease / Diabetes130] --> B[Preprocessing\n80/20 split · no imputation · no oversampling]
     B --> C[Tabular → Text\nrecord_to_text]
     C --> D[Embedding\nOllama + sentence-transformers]
     D --> E[Classification\nLogisticRegression · 5-fold CV]
@@ -28,7 +28,7 @@ flowchart LR
 ```
 Forecast/
 ├── main.py                 # orchestrates all phases
-├── preprocessing.py        # data loading, imputation, SMOTENC, scaling
+├── preprocessing.py        # data loading, 80/20 split, visualization encoding
 ├── embedding.py            # model config + tabular-to-text + embedding generation
 ├── classification.py       # classifier training and cross-validation
 ├── evaluation.py           # bootstrap metrics and plotting orchestration
@@ -75,8 +75,8 @@ The pipeline supports two clinical datasets, selected with `--dataset` (default 
 
 | Dataset | `--dataset` value | Records used | Features | Target |
 |---|---|---|---|---|
-| UCI Heart Disease | `heart_disease` | 297 | 14 clinical attributes | Disease presence (binary) |
-| Diabetes 130-US Hospitals | `diabetes130` | 20,000 (stratified sample of ~100k) | 19 encounter attributes | Readmission within 30 days (binary) |
+| UCI Heart Disease | `heart_disease` | 920 (4 centres; 736 train / 184 test) | 13 clinical attributes | Disease presence (binary) |
+| Diabetes 130-US Hospitals | `diabetes130` | 20,000 (stratified sample of 69,990 first encounters; 16,000 train / 4,000 test, 9% positive) | 19 encounter attributes | Readmission within 30 days (binary) |
 
 Full details on origin, features, ethics, and limitations for both datasets are in **[docs/DATASET.md](docs/DATASET.md)**.
 
@@ -123,28 +123,31 @@ Alternatively, `run_pipeline.sh` (`.bat` / `.ps1` on Windows) automates steps 2�
 
 | Phase | File | What it does |
 |---|---|---|
-| Preprocessing | [preprocessing.py](preprocessing.py) | Impute missing values, balance classes with SMOTENC on raw features, scale + one-hot encode (for visualization only) |
+| Preprocessing | [preprocessing.py](preprocessing.py) | Stratified 80/20 split; missing values kept as missing (no imputation), no oversampling; scale + one-hot encode an imputed copy for visualization only |
 | Embedding | [embedding.py](embedding.py) | Convert records to text (`record_to_text`), generate vectors via Ollama / `sentence-transformers`, save to `.npy` |
-| Classification | [classification.py](classification.py) | `LogisticRegression`, `StratifiedKFold` (5 folds), per-fold F1-optimal threshold, bootstrap uncertainty |
+| Classification | [classification.py](classification.py) | `LogisticRegression`, `StratifiedKFold` (5 folds), F1-optimal threshold from an inner CV, bootstrap uncertainty |
 | Evaluation | [evaluation.py](evaluation.py) | UMAP, ROC, confusion matrices, bootstrap boxplots, mean±CI, family comparison plots |
 | Error Analysis | [error_analysis.py](error_analysis.py) | Traces misclassifications back to clinical records; error rates, hardest cases, feature deviation |
 | Statistical Tests | [statisticaltest.py](statisticaltest.py) | Wilcoxon, paired t-test, DeLong test across all model pairs |
 | Report | [generatereport.py](generatereport.py) | Assembles all of the above into a single Markdown report |
 
 ### Preprocessing
-- Median imputation for numeric features, most-frequent imputation for categorical features
-- `SMOTENC` class balancing on the raw/interpretable feature space, so synthetic records remain convertible to text
-- `StandardScaler` + one-hot encoding used only for the UMAP projection and correlation heatmap — not for the text descriptions
-- Persists `datas/preprocessing/X_train_raw.csv` for traceability during error analysis
+- Stratified 80/20 train/test split (`random_state=42`); the test split is used only by the holdout phase
+- **No imputation** of the records that get embedded: a missing value is written as `not recorded` in the text
+- **No oversampling**: an earlier version applied SMOTENC before cross-validation; on Diabetes130 87% of the positives were synthetic and the CV AUC (~0.76) measured how recognisable synthetic records were, while the AUC on real records was ~0.50–0.55. Class imbalance is now handled by the decision threshold (see [docs/CHANGES.md](docs/CHANGES.md))
+- `StandardScaler` + one-hot encoding of an imputed *copy* of the training split, used only for the UMAP projection and correlation heatmap
+- Persists `datas/<dataset>/preprocessing/X_train_raw.csv` (missing values as empty cells) for error analysis and inference
 
 ### Embedding
 - General-purpose models via `ollama` client, biomedical models via `sentence-transformers`
 - Model list defined in `function.py` (`models_ollama`, `models_medical`, combined into `models_all`)
+- Hugging Face encoders run with `max_seq_length=512` (`HF_MAX_SEQ_LENGTH`): the default can be as low as 100 tokens, which silently truncated the last fields of every record
 
 ### Classification
 - Base classifier: `LogisticRegression` (`max_iter=2000`)
-- 5-fold `StratifiedKFold`, per-fold threshold optimization (max F1 from precision-recall curve)
-- Reported metrics: Accuracy, Macro-F1, ROC-AUC, mean optimized threshold
+- 5-fold `StratifiedKFold`; in each fold the threshold maximizing F1 is chosen on out-of-fold scores of an inner 5-fold CV over the training partition, then the classifier is fit on the whole training partition
+- Reported metrics: Accuracy, Macro-F1, ROC-AUC, PR-AUC, Brier score, mean threshold
+- Holdout phase: same protocol on the whole training pool, measured once on the test split (adds precision, recall, prevalence)
 - Per-fold validation indices saved (`{model}_val_idx.npy`) for error tracing
 
 ### Evaluation and Visualization
@@ -203,6 +206,21 @@ To automate environment setup and Ollama model downloads as well, use `run_pipel
 ```
 Note: embedding generation for the general-purpose models uses `ollama.Client` in `embedding.py` — ensure the Ollama service is running and the required models have been pulled (see [Installation](#installation)).
 
+## Inference (optional, not part of the pipeline)
+`main.py` trains and validates; it never predicts on a case it hasn't already seen and labeled. `inference.py` adds that separately, as a standalone module deliberately **not** wired into `main.py`'s eight phases — it consumes a completed run's output on demand, it isn't a ninth pipeline phase:
+
+```bash
+python inference.py --dataset heart_disease --record '{"age": 63, "sex": 1, "cp": 1, "trestbps": 145, "chol": 233, "fbs": 1, "restecg": 0, "thalach": 150, "exang": 0, "oldpeak": 2.3, "slope": 3, "ca": 0, "thal": 6}'
+```
+
+or as a library:
+```python
+from inference import predict_record
+predict_record({"age": 63, "sex": 1, ...}, dataset="heart_disease")
+```
+
+Requires a completed `python main.py --dataset ...` run for that dataset first (it fits on the already-saved training embeddings, it does not regenerate them). See **[docs/INFERENCE.md](docs/INFERENCE.md)** for the full design rationale, including how missing fields are handled and how this differs from the (unmerged, `chatbot` branch) chatbot's approach to the same problem.
+
 ## Troubleshooting
 - **ARM/x86 mismatch (Apple Silicon)**: make sure `python3` and the virtual environment are built natively for `arm64` (`python3 -c "import platform; print(platform.machine())"` should print `arm64`). A Rosetta-translated Python install can cause slow or failing installs of `torch`/`numba`.
 - **`ollama pull` / model not found errors**: the general-purpose models must be pulled before running the pipeline (see [Installation](#installation), step 4). Verify with `ollama list`.
@@ -217,3 +235,5 @@ See [requirements.txt](requirements.txt) for the full dependency list.
 ## Further Reading
 - **[docs/DATASET.md](docs/DATASET.md)** — full dataset origin, composition, ethics, and limitations
 - **[docs/STATISTICAL_TESTS.md](docs/STATISTICAL_TESTS.md)** — statistical testing methodology, hypotheses, and interpretation
+- **[docs/INFERENCE.md](docs/INFERENCE.md)** — single-record inference (`inference.py`): design, usage, and how it differs from the chatbot's approach
+- **[docs/CHANGES.md](docs/CHANGES.md)** — pipeline correctness and quality fixes, with rationale for each

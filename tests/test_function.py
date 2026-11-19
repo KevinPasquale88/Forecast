@@ -3,7 +3,7 @@ statisticaltest.py."""
 import numpy as np
 import pytest
 
-from function import get_output_dirs, optimal_f1_threshold, results, models_all
+from function import get_output_dirs, optimal_f1_threshold, out_of_fold_threshold, results, models_all
 from statisticaltest import _benjamini_hochberg
 
 
@@ -50,3 +50,43 @@ def test_benjamini_hochberg_never_increases_the_smallest_p_value_rank_order():
 
 def test_benjamini_hochberg_handles_empty_input():
     assert len(_benjamini_hochberg(np.array([]))) == 0
+
+
+def test_out_of_fold_threshold_returns_a_valid_probability_on_imbalanced_data():
+    rng = np.random.default_rng(0)
+    y = np.r_[np.zeros(180, dtype=int), np.ones(20, dtype=int)]
+    X = rng.normal(size=(200, 5)) + y[:, None] * 1.5
+    tau = out_of_fold_threshold(X, y)
+    assert 0.0 < tau < 1.0
+    # with ~10% prevalence the F1-optimal threshold must sit well below 0.5
+    assert tau < 0.5
+
+
+def test_load_diabetes130_keeps_none_category_one_encounter_per_patient_and_no_hospice():
+    import pandas as pd
+    from function import load_diabetes130, hospice_or_death_discharge_ids
+
+    df = load_diabetes130(sample_size=None)
+    assert not df["discharge_disposition_id"].isin(hospice_or_death_discharge_ids).any()
+    assert (df["max_glu_serum"] == "None").any()
+    assert df["max_glu_serum"].isna().sum() == 0
+    raw = pd.read_csv(
+        "datasets/diabetes+130-us+hospitals+for+years+1999-2008/diabetic_data.csv",
+        usecols=["patient_nbr", "discharge_disposition_id"],
+    )
+    kept = raw[~raw["discharge_disposition_id"].isin(hospice_or_death_discharge_ids)]
+    assert len(df) == kept["patient_nbr"].nunique()
+
+
+def test_fit_classifier_picks_C_from_grid_and_is_scale_invariant():
+    """The probe standardizes its inputs, so multiplying every embedding by a constant (unit-norm
+    Ollama vectors vs norm ~12 Hugging Face vectors) must not change C, threshold or scores."""
+    from function import C_GRID, fit_classifier
+    rng = np.random.default_rng(1)
+    y = np.r_[np.zeros(120, dtype=int), np.ones(80, dtype=int)]
+    X = rng.normal(size=(200, 10)) + y[:, None] * 0.8
+    clf_a, tau_a, C_a = fit_classifier(X, y)
+    clf_b, tau_b, C_b = fit_classifier(X * 12.0, y)
+    assert C_a in C_GRID and C_a == C_b
+    assert abs(tau_a - tau_b) < 1e-6
+    assert np.allclose(clf_a.predict_proba(X)[:, 1], clf_b.predict_proba(X * 12.0)[:, 1], atol=1e-6)

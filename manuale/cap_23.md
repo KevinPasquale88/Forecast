@@ -3,14 +3,14 @@
 **Obiettivi del capitolo**
 
 - Leggere per intero il ciclo che addestra e valuta un modello per ciascuno dei sette embedding.
-- Capire esattamente come viene scelta la soglia di decisione, e perché è il punto più delicato di questo file.
+- Capire esattamente come viene scelta la soglia di decisione — su una fetta di calibrazione separata, dopo che una versione precedente la sceglieva sulle stesse etichette su cui poi misurava le metriche.
 - Sapere cosa viene salvato su disco al termine di questa fase, e da quali capitoli successivi verrà riletto.
 
-**[Fatto]** `classification.py` (79 righe) è la fase 3 (`main.py:40`), il file più corto della pipeline principale ma quello che contiene la decisione metodologicamente più delicata dell'intero progetto (capitolo 23.2).
+**[Fatto]** `classification.py` (86 righe) è la fase 3 (`main.py:53`), uno dei file più corti della pipeline principale ma quello che contiene la decisione metodologicamente più delicata dell'intero progetto (capitolo 23.2).
 
 ## 23.1 `StratifiedKFold` e perché "stratified" conta
 
-**[Fatto]** `training_classifier()` (righe 9-80) itera su ciascuno dei sette modelli, ricarica i suoi embedding da disco (righe 13-14, il punto di ingresso del "passaggio via file" già visto al capitolo 17.1), e addestra un `LogisticRegression` con validazione a 5 fold:
+**[Fatto]** `training_classifier()` (righe 9-87) itera su ciascuno dei sette modelli, ricarica i suoi embedding da disco (righe 13-14, il punto di ingresso del "passaggio via file" già visto al capitolo 17.1), e addestra un `LogisticRegression` con validazione a 5 fold:
 ```python
 X = np.load(os.path.join(dirs["embeddings"], model['filename']), allow_pickle=True)
 y = np.load(os.path.join(dirs["embeddings"], model['filename_label']), allow_pickle=True)
@@ -23,26 +23,27 @@ logisticReg = LogisticRegression(max_iter=2000)
 
 ## 23.2 La soglia F1-ottima per fold
 
-**[Fatto]** Il cuore del ciclo (righe 22-46) allena il modello sul training fold, poi cerca la soglia migliore sul fold di validazione:
+**[Fatto]** Il cuore del ciclo (righe 22-53) allena il modello su una parte del training fold, sceglie la soglia su una fetta di **calibrazione** separata, e solo allora tocca il fold di validazione:
 ```python
 for train_idx, val_idx in kf.split(X, y):
-    X_train, X_val = X[train_idx], X[val_idx]
-    y_train, y_val = y[train_idx], y[val_idx]
+    X_train_full, X_val = X[train_idx], X[val_idx]
+    y_train_full, y_val = y[train_idx], y[val_idx]
+    X_train, X_calib, y_train, y_calib = train_test_split(
+        X_train_full, y_train_full, test_size=0.2, random_state=42, stratify=y_train_full
+    )
     logisticReg.fit(X_train, y_train)
+    calib_score = logisticReg.predict_proba(X_calib)[:, 1]
+    tau = optimal_f1_threshold(y_calib, calib_score)
     y_score = logisticReg.predict_proba(X_val)[:, 1]
-    precision, recall, thresholds = precision_recall_curve(y_val, y_score)
-    f1_scores = 2 * (precision[:-1] * recall[:-1]) / (precision[:-1] + recall[:-1] + 1e-6)
-    best_idx = f1_scores.argmax()
-    tau = thresholds[best_idx]
     y_pred = (y_score >= tau).astype(int)
 ```
-`precision_recall_curve()` restituisce precisione e recall per ogni soglia possibile, con un punto in più rispetto all'elenco delle soglie stesse (il punto finale, recall=0, non ha una soglia associata) — da cui il taglio `[:-1]` su precisione e recall prima di calcolare l'F1 per ciascuna soglia candidata. Il termine `+ 1e-6` al denominatore evita una divisione per zero se sia precisione sia recall fossero nulle per una soglia candidata. `best_idx = f1_scores.argmax()` sceglie la soglia che avrebbe massimizzato l'F1 su **questo stesso fold di validazione**.
+La partizione di training di ciascun fold è a sua volta divisa 80/20 (stratificata): il classificatore è addestrato sull'80%, e la soglia `tau` è scelta massimizzando F1 sul 20% di calibrazione — mai su `y_val`. La ricerca della soglia vive in `optimal_f1_threshold()` (`function.py:177-191`), condivisa con `holdout_evaluation.py`: usa `precision_recall_curve()`, che restituisce precisione e recall per ogni soglia possibile con un punto in più rispetto all'elenco delle soglie stesse (il punto finale, recall=0, non ha una soglia associata) — da cui il taglio `[:-1]` su precisione e recall prima di calcolare l'F1 per ciascuna soglia candidata. Il termine `+ 1e-6` al denominatore evita una divisione per zero se sia precisione sia recall fossero nulle per una soglia candidata.
 
-> **ATTENZIONE —** questo è il punto esatto già anticipato al capitolo 2.3 e al capitolo 33: la soglia `tau` è scelta guardando `y_val` — le etichette vere del fold di validazione — e poi la stessa soglia viene usata per calcolare `y_pred` su cui, poche righe sotto, si misurano accuratezza e F1 riportati come prestazione del modello **su quello stesso fold**. Non è data leakage nel senso di informazione che raggiunge l'addestramento del modello (`logisticReg.fit()` vede solo `X_train`/`y_train`, mai il fold di validazione) — è un ottimismo più sottile, limitato alla sola scelta della soglia, che gonfia leggermente F1 e accuratezza rispetto a una soglia fissata a priori o scelta su un fold separato di calibrazione. Il capitolo 51 lo tratta con tutto il rigore critico che merita.
+> **ATTENZIONE —** questo è il punto esatto già anticipato al capitolo 2.3 e al capitolo 33, e la sua forma attuale è il risultato di un fix documentato in `docs/CHANGES.md`. In una versione precedente, `tau` era scelta guardando `y_val` — le etichette vere del fold di validazione — e poi la stessa soglia veniva usata per calcolare `y_pred` su cui si misuravano accuratezza e F1 riportate come prestazione del modello **su quello stesso fold**. Non era data leakage nel senso di informazione che raggiunge l'addestramento del modello (`logisticReg.fit()` non ha mai visto il fold di validazione) — era un ottimismo più sottile, limitato alla sola scelta della soglia, che gonfiava leggermente F1 e accuratezza rispetto a una soglia scelta su dati separati. La struttura attuale fit/calibrazione/validazione su tre fette disgiunte paga un prezzo esplicito — il classificatore si allena sull'80% del training fold invece che sul 100% — in cambio di una soglia che non deve nulla al fold su cui viene giudicata. Il capitolo 51 ricostruisce la storia completa di questo fix.
 
 ## 23.3 Cosa viene salvato e a cosa serve dopo
 
-**[Fatto]** Oltre alle metriche medie sui 5 fold (righe 47-56, salvate nel dizionario globale `results`, capitolo 8.3 e capitolo 19.2), il codice concatena le predizioni di *tutti* i fold in quattro array (righe 61-68):
+**[Fatto]** Oltre alle metriche medie sui 5 fold (righe 54-63, salvate nel dizionario globale `results`, capitolo 8.3 e capitolo 19.2), il codice concatena le predizioni di *tutti* i fold in quattro array (righe 68-75):
 ```python
 all_val_idx = np.concatenate(all_val_idx)
 np.save(os.path.join(dirs["results"], f"{model['model_name']}_y_true.npy"), all_y_true)
@@ -52,7 +53,7 @@ np.save(os.path.join(dirs["results"], f"{model['model_name']}_val_idx.npy"), all
 ```
 `all_val_idx` — gli indici di riga usati come validazione in ciascun fold, concatenati nell'ordine in cui i fold sono stati processati — è il file più importante per il capitolo 25: è il ponte che permette di ricondurre ogni previsione (giusta o sbagliata) al record originale in `X_train_raw.csv` (capitolo 21.3). Senza questo file, l'analisi degli errori del capitolo 25 non avrebbe modo di sapere *quale riga* del dataset originale corrisponde a ciascuna predizione salvata.
 
-**[Fatto]** Perché questa concatenazione produca un risultato coerente — cioè perché l'elemento *i*-esimo di `all_y_true`, `all_y_score`, `all_y_pred` e `all_val_idx` si riferiscano davvero allo stesso record — è necessario che i quattro array vengano popolati nello stesso ordine, fold per fold, dentro lo stesso ciclo: **[Fatto]** verificato leggendo le righe 43-46, è esattamente così che il codice li costruisce, con un `append` per lista corrispondente ad ogni iterazione del ciclo prima della concatenazione finale.
+**[Fatto]** Perché questa concatenazione produca un risultato coerente — cioè perché l'elemento *i*-esimo di `all_y_true`, `all_y_score`, `all_y_pred` e `all_val_idx` si riferiscano davvero allo stesso record — è necessario che i quattro array vengano popolati nello stesso ordine, fold per fold, dentro lo stesso ciclo: **[Fatto]** verificato leggendo le righe 49-53, è esattamente così che il codice li costruisce, con un `append` per lista corrispondente ad ogni iterazione del ciclo prima della concatenazione finale.
 
 ## Interfaccia pubblica
 
@@ -68,20 +69,20 @@ Un `IndexError` o una forma inattesa in `X[train_idx]` segnala quasi sempre un d
 
 ## Riepilogo
 
-`classification.py` allena una regressione logistica separata per ciascuno dei sette modelli, con validazione a 5 fold stratificati sugli embedding già bilanciati da SMOTENC. La soglia di decisione è scelta, fold per fold, massimizzando F1 sulle etichette dello stesso fold di validazione su cui viene poi misurata la prestazione — un punto di attenzione metodologica reale. Gli indici di validazione salvati da questo file sono il collegamento indispensabile fra ogni previsione e il record clinico che l'ha generata.
+`classification.py` allena una regressione logistica separata per ciascuno dei sette modelli, con validazione a 5 fold stratificati sugli embedding già bilanciati da SMOTENC. La soglia di decisione è scelta, fold per fold, su una fetta di calibrazione ricavata dalla partizione di training del fold stesso — mai sulle etichette di validazione, come invece accadeva in una versione precedente del codice, corretta durante la revisione. Gli indici di validazione salvati da questo file sono il collegamento indispensabile fra ogni previsione e il record clinico che l'ha generata.
 
 ## Domande di autoverifica
 
 **1. Perché `StratifiedKFold`, e non un k-fold ordinario, è la scelta giusta per Diabetes130 in particolare?**
 Perché Diabetes130 ha una classe positiva minoritaria (11.16%, capitolo 4.2): un k-fold ordinario rischierebbe di produrre fold con proporzioni di classe molto diverse dal dataset intero, o addirittura fold senza esempi della classe minoritaria — la stratificazione lo previene per costruzione.
 
-**2. In che senso la scelta della soglia `tau` non è "data leakage" nel senso classico, ma resta comunque un problema?**
-Perché il modello (`logisticReg.fit()`) non vede mai le etichette del fold di validazione durante l'addestramento — l'addestramento è pulito. Il problema riguarda solo la soglia: viene scelta massimizzando F1 sulle stesse etichette di validazione su cui poi si riporta la metrica, un ottimismo più contenuto ma reale.
+**2. In che senso la vecchia scelta della soglia `tau` non era "data leakage" nel senso classico, ma restava comunque un problema — e come lo risolve il codice attuale?**
+Perché il modello (`logisticReg.fit()`) non ha mai visto le etichette del fold di validazione durante l'addestramento — l'addestramento era pulito anche prima. Il problema riguardava solo la soglia: veniva scelta massimizzando F1 sulle stesse etichette di validazione su cui poi si riportava la metrica, un ottimismo contenuto ma reale. Il codice attuale la sceglie su una fetta di calibrazione (20% della partizione di training del fold), disgiunta sia dai dati di fit sia dal fold di validazione.
 
 **3. Perché `all_val_idx` è indispensabile per il capitolo 25 (analisi degli errori)?**
 Perché è l'unico collegamento salvato fra una previsione (giusta o sbagliata) e la riga originale del dataset da cui proviene: senza questi indici, non ci sarebbe modo di sapere quale record clinico corrisponde a un falso positivo o falso negativo specifico.
 
 > **MATERIALE PER LA TESI**
-> 1. La spiegazione formale della soglia F1-ottima per fold, con l'osservazione critica sull'ottimismo che introduce — riusabile parola per parola nella sezione "Discussione e limiti", capitolo di riferimento 51.
+> 1. La spiegazione formale della soglia F1-ottima per fold, con la storia dell'ottimismo che la vecchia versione introduceva e dello schema fit/calibrazione/validazione che lo ha eliminato — riusabile parola per parola nella sezione "Discussione e limiti", capitolo di riferimento 51.
 > 2. La spiegazione di `StratifiedKFold` applicato dopo SMOTENC, con la precisazione che opera su un pool già bilanciato — riusabile in "Materiali e metodi" per descrivere con precisione il protocollo di validazione.
 > 3. Lo schema del collegamento `val_idx` → record originale, con i quattro file salvati per modello — riusabile come base tecnica per la sezione che descrive la tracciabilità degli errori nella tesi.

@@ -1,6 +1,20 @@
 # Stato di avanzamento — Manuale "Forecast"
 
-Ultimo aggiornamento: 2026-09-05 (turno di ricognizione iniziale).
+Ultimo aggiornamento: 2026-09-10 (revisione post-fix, v1.1).
+
+## Revisione v1.1 (2026-09-10) — COMPLETATA
+
+Su richiesta dell'utente, l'intero manuale è stato revisionato per allinearlo al codice corretto dal branch `fix/pipeline-quality` (merge in `master`, `docs/CHANGES.md`) e alle riesecuzioni della pipeline del 2026-09-06 ("run pipeline heart disease", "run pipeline diabetes139" — l'esecuzione che usa *tutti* i dati, incluso il test set trattenuto). Interventi principali:
+
+- **Architettura a 8 fasi**: capitoli 17, 18, 28 e i due diagrammi Mermaid (cap_17_fig1, cap_18_fig1) aggiornati con la doppia chiamata di embedding (train + test) e la fase 7 `holdout_evaluation.py`.
+- **Fix documentati come storia diagnosi→correzione→ri-misura**: test set holdout (cap. 21, 33, 43, 51, 55, 57), soglia su fetta di calibrazione (cap. 23, 33, 35, 51, app_C), indicatori `<col>_missing` + "not recorded" (cap. 21, 22, 29, 30, 31, 46), report data-driven (cap. 27, 52), Benjamini-Hochberg (cap. 26.2bis nuovo, 37, 39, 44, 45, 53), `results` da `models_all` (cap. 8, 19), `family_order` (cap. 19), `delete_files_*` (cap. 20), README e5-base (cap. 15, 16, 50), `dataset_chosen` (cap. 21), suite pytest (cap. 48, 49 riscritti).
+- **Risultati aggiornati alla pipeline corretta**: tabelle CV con IC (44.1, 45.1), nuove tabelle holdout (44.1bis, 45.1bis), tassi di errore (46.1), DeLong (12/12 e 11/12 BH fra famiglie su Heart, 19/21 su Diabetes), baseline (cap. 47), hardest cases con indicatori (14/20 `ca_missing=1`, niente più età non intere). Risultato chiave nuovo: su Diabetes130 l'holdout sulla distribuzione reale dà AUC 0.48-0.55 (vicino al caso) — trattato in cap. 41, 45, 47, 51, 53, 58.
+- **Scoperta aggiuntiva**: gli indicatori di mancanza per Heart Disease sono tre (`ca`, `slope`, `thal`), non due come dichiara `docs/CHANGES.md` — verificato sull'header di `X_train_raw.csv` (cap. 21, 40).
+- **Riferimenti `file:riga`**: 124 rimappati automaticamente (script con `difflib` su `git show 41bf90e` vs HEAD) + ~30 sistemati a mano nei capitoli riscritti; conteggi aggiornati (10 file, 1720 righe, 8 semi casuali, 10 funzioni plot).
+- **Front matter**: copertina a v1.1 con nota di aggiornamento, elenco tabelle esteso, indice aggiornato (titoli 28.3, 48, 51), glossario (holdout, BH, fetta di calibrazione, indicatore di mancanza), app_B (nuove funzioni), app_E (voci chiuse marcate), app_F (voci nuove), scheda tecnica con addendum e marcature [SUPERATO].
+- **PDF**: rigenerato come `Forecast_Manuale_Completo_v1.pdf` (stesso nome file, versione 1.1 in copertina).
+
+Ultimo aggiornamento precedente: 2026-09-05 (turno di ricognizione iniziale).
 
 ## Fase del progetto
 
@@ -151,7 +165,7 @@ Classificazione binaria, sbilanciamento delle classi, vero/falso positivo/negati
 
 ## Riferimenti al codice aggiunti in questa sessione di scrittura (oltre a quelli già nella scheda tecnica)
 
-`function.py:38-61` (dizionari modelli, MODEL_FAMILY, FAMILY_COLORS), `classification.py:26-37`, `preprocessing.py:41,53,66-70`, `embedding.py:43-59,146,155,170,178`, `error_analysis.py:24,26-27,58-75`, `evaluation.py:23-25,56`, `generatereport.py:221`, `docs/DATASET.md:17,59-64,109-110`, `README.md:5-16,56-61,78`.
+`function.py:38-61` (dizionari modelli, MODEL_FAMILY, FAMILY_COLORS), `classification.py:37-44`, `preprocessing.py:50,53,66-70`, `embedding.py:58-74,146,155,170,178`, `error_analysis.py:24,26-27,58-75`, `evaluation.py:23-25,56`, `generatereport.py:221`, `docs/DATASET.md:17,59-64,109-110`, `README.md:5-16,56-61,78`.
 
 ## Riferimenti bibliografici marcati [DA VERIFICARE] durante la scrittura (da chiudere in Appendice D)
 
@@ -159,7 +173,7 @@ E5 (Wang et al.), GTE (Li et al.), Hastie/Tibshirani/Friedman "The Elements of S
 
 ## Fatti tecnici verificati con grep durante la scrittura della Parte II (validi per tutto il libro, non ripetere la verifica)
 
-Zero `class` definite nei 9 file di `master`; zero `def __init__`; zero decoratori (`@`); zero `yield`; zero annotazioni di tipo (`: tipo` o `->`); zero `assert`; zero operatore walrus (`:=`); zero `*args`/`**kwargs` in firme; zero `global`; un solo `raise ... from` (`embedding.py:199`); tre `with` (`embedding.py:117,203`, `generatereport.py:245`); tre `lambda`, identiche (`function.py:246,292,363`); un solo `hasattr` (`preprocessing.py:109`, nessun `isinstance`); nessun `__init__.py` in tutto il repository. Fonte: comandi `grep` eseguiti sui 9 file, sessione del 2026-09-05.
+Zero `class` definite nei 9 file di `master`; zero `def __init__`; zero decoratori (`@`); zero `yield`; zero annotazioni di tipo (`: tipo` o `->`); zero `assert`; zero operatore walrus (`:=`); zero `*args`/`**kwargs` in firme; zero `global`; un solo `raise ... from` (`embedding.py:199`); tre `with` (`embedding.py:132,203`, `generatereport.py:307`); tre `lambda`, identiche (`function.py:269,292,363`); un solo `hasattr` (`preprocessing.py:183`, nessun `isinstance`); nessun `__init__.py` in tutto il repository. Fonte: comandi `grep` eseguiti sui 9 file, sessione del 2026-09-05.
 
 ## Nuova scoperta critica durante la Parte III (aggiunta a scheda_tecnica.md §7ter)
 
@@ -174,7 +188,7 @@ Il grafo delle dipendenze interne è una stella a due livelli: `function.py` non
 - `preprocessing.py:23` usa la variabile `datasetChoosen` in camelCase, incoerente con lo snake_case del resto del file — refuso di stile, nessuna conseguenza funzionale (cap. 21.1).
 - La formula di deviazione di feature in `error_analysis.py` è concettualmente imparentata alla *d* di Cohen mai nominata esplicitamente nel codice (cap. 25.3) — buon materiale per il formulario (Appendice C).
 - `statisticaltest.py` salva il flag di significatività come stringa `"1"`/`"0"`, non intero/booleano — un dettaglio che romperebbe un filtro numerico diretto sul CSV (cap. 26.1).
-- Confermata con precisione, confrontando i due `report.md` reali carattere per carattere, l'identità esatta del testo statico in `generatereport.py:192-225` (cap. 27.2) — probabilmente il miglior singolo argomento critico di tutto il libro.
+- Confermata con precisione, confrontando i due `report.md` reali carattere per carattere, l'identità esatta del testo statico in `generatereport.py:207-233` (cap. 27.2) — probabilmente il miglior singolo argomento critico di tutto il libro.
 
 ## Scoperta maggiore durante la Parte VI (aggiunta a scheda_tecnica.md §7quater)
 

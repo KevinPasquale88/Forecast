@@ -1,8 +1,8 @@
-"""Tests for the imputation and missing-value-indicator logic in preprocessing.py.
+"""Tests for the imputation helpers in preprocessing.py.
 
-These specifically guard against the leakage this code used to have: fitting an imputation
-statistic (median/mode) on the test split instead of reusing the value already fitted on
-training. See docs/CHANGES.md.
+Imputation is now used only for the UMAP/heatmap visualization copy of the training split (the
+records that get embedded keep their missing values). These tests still guard against fitting an
+imputation statistic on a frame other than the one it is meant to come from. See docs/CHANGES.md.
 """
 import numpy as np
 import pandas as pd
@@ -11,8 +11,6 @@ from preprocessing import (
     fit_imputation_values,
     apply_imputation,
     impute_raw,
-    columns_needing_missing_indicator,
-    add_missing_indicators,
 )
 
 
@@ -51,26 +49,3 @@ def test_impute_raw_matches_fit_then_apply_on_a_single_frame():
     combined = impute_raw(X, num_cols=["age"], cat_cols=["sex"])
     separate = apply_imputation(X, fit_imputation_values(X, num_cols=["age"], cat_cols=["sex"]))
     pd.testing.assert_frame_equal(combined, separate)
-
-
-def test_columns_needing_missing_indicator_respects_threshold():
-    X = pd.DataFrame({
-        "mostly_missing": [np.nan, np.nan, np.nan, 1.0],   # 75% missing
-        "rarely_missing": [1.0, 2.0, 3.0, np.nan],          # 25% missing
-    })
-    flagged = columns_needing_missing_indicator(X, ["mostly_missing", "rarely_missing"], threshold=0.30)
-    assert flagged == ["mostly_missing"]
-
-
-def test_add_missing_indicators_reflects_original_missingness_not_the_imputed_value():
-    X = pd.DataFrame({"ca": [0.0, np.nan, 2.0]})
-    X_flagged = add_missing_indicators(X, ["ca"])
-    assert list(X_flagged["ca_missing"]) == [0, 1, 0]
-    # the original column is untouched by add_missing_indicators: imputation is a later, separate step
-    assert X_flagged["ca"].isna().sum() == 1
-
-
-def test_add_missing_indicators_does_not_mutate_its_input():
-    X = pd.DataFrame({"ca": [0.0, np.nan]})
-    add_missing_indicators(X, ["ca"])
-    assert "ca_missing" not in X.columns
