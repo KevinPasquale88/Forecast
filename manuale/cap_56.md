@@ -27,7 +27,7 @@ Questo capitolo prende sul serio l'anteprima già data al capitolo 0.3.2, ed ent
 
 ## 56.5 Discussione e limiti
 
-**Attingi da:** Parte XI per intero (capitoli 51-53: sintesi dei limiti metodologici con gravità e correggibilità valutate, il caso del report statico come esempio paradigmatico, posizionamento e minacce alla validità), più i singoli punti critici sparsi nei capitoli precedenti (capitolo 4.2 e 29.3 sulla discrepanza 297/920, capitolo 32.3 sul rapporto parametri/campioni, capitolo 46.2 sui casi sintetici).
+**Attingi da:** Parte XI per intero (capitoli 51-53: sintesi dei limiti metodologici con la storia diagnosi→correzione→ri-misura, il caso del report statico come esempio paradigmatico, posizionamento e minacce alla validità), più i singoli punti critici sparsi nei capitoli precedenti (capitolo 4.2 e 29.3 sulla discrepanza 297/920, capitolo 32.3 sul rapporto parametri/campioni, capitolo 46.2 sui casi con feature mai misurate, capitolo 45 sul divario cross-validation/holdout di Diabetes130).
 
 ## 56.6 Conclusioni e lavori futuri
 

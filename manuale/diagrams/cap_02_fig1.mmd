@@ -4,4 +4,4 @@ flowchart LR
     C --> D["Validazione\npredict_proba(X_val) confrontato con y_val"]
     D --> E{"Il modello\ngeneralizza bene?"}
     E -- ricomincia con altri dati/iperparametri --> B
-    E -- sì --> F["Inferenza\nrecord nuovo, etichetta ignota\n(solo su branch chatbot)"]
+    E -- sì --> F["Inferenza\nrecord nuovo, etichetta ignota\n(inference.py o chatbot_core.py,\nmai richiamati da main.py)"]

@@ -3,7 +3,10 @@ import numpy as np
 import pandas as pd
 from umap import UMAP
 from sklearn.metrics import confusion_matrix, roc_curve, roc_auc_score, precision_recall_curve
-from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import GridSearchCV, StratifiedKFold, cross_val_predict, train_test_split
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
 import seaborn as sns
 import matplotlib.pyplot as plt
 
@@ -71,6 +74,12 @@ FIGSIZE_WIDE = (9, 5.5)
 # entry per model actually configured in models_all, so the two can never drift apart again.
 results = {m["model_name"]: {"acc": [], "f1": [], "auc": [], "tau": []} for m in models_all}
 
+# Hugging Face encoders default to a short max_seq_length (sentence-biobert: 100 tokens). The
+# clinical sentences are longer than that, so without raising it the last fields of every record
+# (ca/thal, or the diabetes medication fields) are silently cut off before reaching the model.
+# 512 is BERT's positional limit.
+HF_MAX_SEQ_LENGTH = 512
+
 datasets = ["heart_disease", "diabetes130"]
 
 # Per-dataset output tree: each dataset gets its own preprocessing/embeddings/results/
@@ -112,12 +121,24 @@ def load_heart_disease():
 
     return df
 
+# Discharge to hospice or death (IDS_mapping.csv): the patient cannot be readmitted, so the
+# 30-day readmission outcome is not defined for these encounters.
+hospice_or_death_discharge_ids = [11, 13, 14, 19, 20, 21]
+
 #load and sample the Diabetes 130-US Hospitals dataset from a local CSV
 def load_diabetes130(sample_size=20000, random_state=42):
+    # keep_default_na=False: in max_glu_serum/A1Cresult the string "None" means "test not
+    # performed" and is a category of its own, not a missing value. Only "?" is missing.
     df = pd.read_csv(
-        "datasets/diabetes+130-us+hospitals+for+years+1999-2008/diabetic_data.csv", na_values="?"
+        "datasets/diabetes+130-us+hospitals+for+years+1999-2008/diabetic_data.csv",
+        na_values="?", keep_default_na=False, low_memory=False,
     )
+    df = df[~df["discharge_disposition_id"].isin(hospice_or_death_discharge_ids)]
+    # One encounter per patient (the first), so the same patient can never end up in both the
+    # training and the test split, and repeated encounters do not weigh one patient more.
+    df = df.sort_values("encounter_id").drop_duplicates("patient_nbr")
     df = df[columns_diabetes130].copy()
+    df["gender"] = df["gender"].replace("Unknown/Invalid", np.nan)
 
     # Binarize to the standard early-readmission benchmark task for this dataset:
     # 1 = readmitted within 30 days, 0 = readmitted later or not at all.
@@ -127,9 +148,7 @@ def load_diabetes130(sample_size=20000, random_state=42):
         df, _ = train_test_split(
             df, train_size=sample_size, stratify=df["readmitted"], random_state=random_state
         )
-        df = df.reset_index(drop=True)
-
-    return df
+    return df.reset_index(drop=True)
 
 def _configure_plot_style():
     sns.set_style("white")
@@ -175,13 +194,11 @@ def get_model_palette(model_names):
 
 
 def optimal_f1_threshold(y_true, y_score):
-    """Decision threshold that maximizes macro-oriented F1 for (y_true, y_score).
+    """Decision threshold that maximizes F1 for (y_true, y_score).
 
-    Shared by classification.py (per-fold threshold) and holdout_evaluation.py (final
-    threshold), so the same rule is implemented once instead of copy-pasted. The caller is
-    responsible for the labels passed in: they must never be the same labels a reported metric
-    is later computed on, or the choice of threshold leaks information from that evaluation back
-    into itself (see docs/CHANGES.md for the leakage this replaced).
+    The caller is responsible for the labels passed in: they must never be the same labels a
+    reported metric is later computed on, or the choice of threshold leaks information from that
+    evaluation back into itself. out_of_fold_threshold() below is the safe way to call it.
     """
     precision, recall, thresholds = precision_recall_curve(y_true, y_score)
     # precision/recall have one more point than thresholds (the last point is the
@@ -189,6 +206,52 @@ def optimal_f1_threshold(y_true, y_score):
     f1_scores = 2 * (precision[:-1] * recall[:-1]) / (precision[:-1] + recall[:-1] + 1e-6)
     best_idx = f1_scores.argmax()
     return thresholds[best_idx]
+
+
+# Regularization grid for the linear probe. Ollama embeddings are unit-norm while the Hugging
+# Face ones have norm ~11-13: with one fixed C on raw vectors the L2 penalty is far stronger for
+# the former, which biased the encoder comparison (manuale_v2, capitolo 32.4). Every encoder is
+# therefore standardized and gets its own C, chosen by an inner cross-validation.
+C_GRID = np.logspace(-3, 2, 6)
+
+
+def make_classifier(C=1.0):
+    """The linear probe used everywhere: StandardScaler + L2 logistic regression."""
+    return make_pipeline(StandardScaler(), LogisticRegression(C=C, max_iter=5000))
+
+
+def choose_C(X, y, n_splits=5, random_state=42):
+    """C from C_GRID with the best mean ROC-AUC in an inner stratified CV over (X, y) only.
+    The scaler is refitted inside each inner fold (it is part of the pipeline)."""
+    search = GridSearchCV(
+        make_classifier(), {"logisticregression__C": C_GRID},
+        cv=StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=random_state),
+        scoring="roc_auc", refit=False, n_jobs=-1,
+    )
+    search.fit(X, y)
+    return float(search.best_params_["logisticregression__C"])
+
+
+def out_of_fold_threshold(X, y, C=1.0, n_splits=5, random_state=42):
+    """F1-optimal threshold chosen on out-of-fold scores of an inner cross-validation over
+    (X, y). Every training record contributes a score from a classifier that never saw it, so the
+    threshold is calibrated on the whole training set without being fitted on its own labels and
+    without giving up 20% of the data to a separate calibration slice. The caller then fits the
+    final classifier on all of (X, y) and uses this threshold with it."""
+    inner_cv = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=random_state)
+    scores = cross_val_predict(
+        make_classifier(C), X, y, cv=inner_cv, method="predict_proba"
+    )[:, 1]
+    return optimal_f1_threshold(y, scores)
+
+
+def fit_classifier(X, y):
+    """Full training protocol on (X, y): choose C by inner CV, choose the threshold on
+    out-of-fold scores with that C, fit the final classifier on all of (X, y).
+    Returns (fitted classifier, threshold, C)."""
+    C = choose_C(X, y)
+    tau = out_of_fold_threshold(X, y, C=C)
+    return make_classifier(C).fit(X, y), tau, C
 
 
 #delete files functions - each takes the dataset-specific folder to clean, so a rerun of

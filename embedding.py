@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 from ollama import Client
 from sentence_transformers import SentenceTransformer
-from function import get_output_dirs, models_all
+from function import HF_MAX_SEQ_LENGTH, get_output_dirs, models_all
 
 def embeddings(X, y, dataset="heart_disease", split="train"):
     dirs = get_output_dirs(dataset)
@@ -23,8 +23,10 @@ def embeddings(X, y, dataset="heart_disease", split="train"):
 CP_LABELS = {1: "typical angina", 2: "atypical angina", 3: "non-anginal pain", 4: "asymptomatic"}
 RESTECG_LABELS = {0: "normal", 1: "ST-T wave abnormality", 2: "left ventricular hypertrophy"}
 SLOPE_LABELS = {1: "upsloping", 2: "flat", 3: "downsloping"}
-THAL_LABELS = {3: "normal", 6: "fixed defect", 7: "reversable defect"}
+# "thal" is the result of the thallium stress test (scintigraphy), not thalassemia.
+THAL_LABELS = {3: "normal", 6: "fixed defect", 7: "reversible defect"}
 
+# Every missing value (never imputed, see preprocessing.py) becomes "not recorded" in the text.
 def _fmt_num(value, unit="", ndigits=1):
     if pd.isna(value):
         return "not recorded"
@@ -40,36 +42,22 @@ def _fmt_bool(value, true_label, false_label):
         return "not recorded"
     return true_label if int(round(float(value))) == 1 else false_label
 
-def _masked(row, col, formatter):
-    """Apply `formatter` to row[col], unless a "<col>_missing" indicator column (added by
-    preprocessing.py for columns missing too often to impute honestly, see
-    MISSING_INDICATOR_THRESHOLD there) marks this value as imputed — or, for a synthetic
-    SMOTENC record, interpolated mostly from imputed neighbours. In that case report it as "not
-    recorded", exactly like a genuinely missing value, instead of writing a fabricated number or
-    category into the record as if it had been observed. A row with no such indicator column
-    (because that field was never missing often enough to need one) falls through to `formatter`
-    unchanged, so this is safe to apply to every field uniformly."""
-    flag_col = f"{col}_missing"
-    if flag_col in row.index and pd.notna(row[flag_col]) and int(round(float(row[flag_col]))) == 1:
-        return "not recorded"
-    return formatter(row[col])
-
 
 def record_to_text_heart_disease(row):
-    sex = _masked(row, "sex", lambda v: _fmt_bool(v, "Male", "Female"))
+    sex = _fmt_bool(row["sex"], "Male", "Female")
     parts = [
-        f"{sex} patient, {_masked(row, 'age', lambda v: _fmt_num(v, ndigits=0))} years old",
-        f"chest pain type: {_masked(row, 'cp', lambda v: _fmt_cat(v, CP_LABELS))}",
-        f"resting blood pressure: {_masked(row, 'trestbps', lambda v: _fmt_num(v, ' mm Hg', ndigits=0))}",
-        f"serum cholesterol: {_masked(row, 'chol', lambda v: _fmt_num(v, ' mg/dl', ndigits=0))}",
-        f"fasting blood sugar > 120 mg/dl: {_masked(row, 'fbs', lambda v: _fmt_bool(v, 'yes', 'no'))}",
-        f"resting electrocardiographic results: {_masked(row, 'restecg', lambda v: _fmt_cat(v, RESTECG_LABELS))}",
-        f"maximum heart rate achieved: {_masked(row, 'thalach', lambda v: _fmt_num(v, ndigits=0))}",
-        f"exercise-induced angina: {_masked(row, 'exang', lambda v: _fmt_bool(v, 'yes', 'no'))}",
-        f"ST depression induced by exercise: {_masked(row, 'oldpeak', _fmt_num)}",
-        f"slope of the peak exercise ST segment: {_masked(row, 'slope', lambda v: _fmt_cat(v, SLOPE_LABELS))}",
-        f"number of major vessels colored by fluoroscopy: {_masked(row, 'ca', lambda v: _fmt_num(v, ndigits=0))}",
-        f"thalassemia: {_masked(row, 'thal', lambda v: _fmt_cat(v, THAL_LABELS))}",
+        f"{sex} patient, {_fmt_num(row['age'], ndigits=0)} years old",
+        f"chest pain type: {_fmt_cat(row['cp'], CP_LABELS)}",
+        f"resting blood pressure: {_fmt_num(row['trestbps'], ' mm Hg', ndigits=0)}",
+        f"serum cholesterol: {_fmt_num(row['chol'], ' mg/dl', ndigits=0)}",
+        f"fasting blood sugar > 120 mg/dl: {_fmt_bool(row['fbs'], 'yes', 'no')}",
+        f"resting electrocardiographic results: {_fmt_cat(row['restecg'], RESTECG_LABELS)}",
+        f"maximum heart rate achieved: {_fmt_num(row['thalach'], ndigits=0)}",
+        f"exercise-induced angina: {_fmt_bool(row['exang'], 'yes', 'no')}",
+        f"ST depression induced by exercise: {_fmt_num(row['oldpeak'])}",
+        f"slope of the peak exercise ST segment: {_fmt_cat(row['slope'], SLOPE_LABELS)}",
+        f"number of major vessels colored by fluoroscopy: {_fmt_num(row['ca'], ndigits=0)}",
+        f"thallium stress test: {_fmt_cat(row['thal'], THAL_LABELS)}",
     ]
     return ", ".join(parts)
 
@@ -78,24 +66,24 @@ def _fmt_raw(value):
 
 def record_to_text_diabetes130(row):
     parts = [
-        f"{_masked(row, 'gender', _fmt_raw)} patient, age range {_masked(row, 'age', _fmt_raw)}",
-        f"race: {_masked(row, 'race', _fmt_raw)}",
-        f"admission type id: {_masked(row, 'admission_type_id', _fmt_raw)}",
-        f"discharge disposition id: {_masked(row, 'discharge_disposition_id', _fmt_raw)}",
-        f"admission source id: {_masked(row, 'admission_source_id', _fmt_raw)}",
-        f"time in hospital: {_masked(row, 'time_in_hospital', _fmt_raw)} days",
-        f"number of lab procedures: {_masked(row, 'num_lab_procedures', _fmt_raw)}",
-        f"number of procedures: {_masked(row, 'num_procedures', _fmt_raw)}",
-        f"number of medications: {_masked(row, 'num_medications', _fmt_raw)}",
-        f"outpatient visits in prior year: {_masked(row, 'number_outpatient', _fmt_raw)}",
-        f"emergency visits in prior year: {_masked(row, 'number_emergency', _fmt_raw)}",
-        f"inpatient visits in prior year: {_masked(row, 'number_inpatient', _fmt_raw)}",
-        f"number of diagnoses: {_masked(row, 'number_diagnoses', _fmt_raw)}",
-        f"max glucose serum test result: {_masked(row, 'max_glu_serum', _fmt_raw)}",
-        f"A1C test result: {_masked(row, 'A1Cresult', _fmt_raw)}",
-        f"insulin therapy: {_masked(row, 'insulin', _fmt_raw)}",
-        f"medication changed during encounter: {_masked(row, 'change', _fmt_raw)}",
-        f"prescribed diabetes medication: {_masked(row, 'diabetesMed', _fmt_raw)}",
+        f"{_fmt_raw(row['gender'])} patient, age range {_fmt_raw(row['age'])}",
+        f"race: {_fmt_raw(row['race'])}",
+        f"admission type id: {_fmt_raw(row['admission_type_id'])}",
+        f"discharge disposition id: {_fmt_raw(row['discharge_disposition_id'])}",
+        f"admission source id: {_fmt_raw(row['admission_source_id'])}",
+        f"time in hospital: {_fmt_raw(row['time_in_hospital'])} days",
+        f"number of lab procedures: {_fmt_raw(row['num_lab_procedures'])}",
+        f"number of procedures: {_fmt_raw(row['num_procedures'])}",
+        f"number of medications: {_fmt_raw(row['num_medications'])}",
+        f"outpatient visits in prior year: {_fmt_raw(row['number_outpatient'])}",
+        f"emergency visits in prior year: {_fmt_raw(row['number_emergency'])}",
+        f"inpatient visits in prior year: {_fmt_raw(row['number_inpatient'])}",
+        f"number of diagnoses: {_fmt_raw(row['number_diagnoses'])}",
+        f"max glucose serum test result: {_fmt_raw(row['max_glu_serum'])}",
+        f"A1C test result: {_fmt_raw(row['A1Cresult'])}",
+        f"insulin therapy: {_fmt_raw(row['insulin'])}",
+        f"medication changed during encounter: {_fmt_raw(row['change'])}",
+        f"prescribed diabetes medication: {_fmt_raw(row['diabetesMed'])}",
     ]
     return ", ".join(parts)
 
@@ -184,6 +172,9 @@ def generate_embeddings_hf(texts, model_name):
     try:
         # SentenceTransformer applicherà automaticamente il "mean pooling" ai token di Bio_ClinicalBERT
         model = SentenceTransformer(model_name, local_files_only=is_offline)
+        # Default is as low as 100 tokens: the clinical sentences are longer, so the last fields
+        # would be silently truncated (see HF_MAX_SEQ_LENGTH in function.py).
+        model.max_seq_length = HF_MAX_SEQ_LENGTH
     except Exception as e:
         print(f"[HF] Errore critico durante il caricamento del modello. model_name: {model_name}, dettagli: {e}")
         raise e

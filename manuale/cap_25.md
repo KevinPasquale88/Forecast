@@ -6,7 +6,7 @@
 - Capire cosa significa, esattamente, un caso "più difficile" quando sette modelli diversi lo valutano.
 - Leggere la formula della deviazione di feature e sapere cosa NON dice.
 
-**[Fatto]** `error_analysis.py` (81 righe) è la fase 5 (`main.py:46`): l'unico file, oltre a `generatereport.py`, il cui scopo esplicito è tradurre risultati statistici in qualcosa di direttamente interpretabile su un caso clinico reale, non solo su un numero aggregato.
+**[Fatto]** `error_analysis.py` (81 righe) è la fase 5 (`main.py:59`): l'unico file, oltre a `generatereport.py`, il cui scopo esplicito è tradurre risultati statistici in qualcosa di direttamente interpretabile su un caso clinico reale, non solo su un numero aggregato.
 
 ## 25.1 Ricostruire il record dall'indice di validazione
 

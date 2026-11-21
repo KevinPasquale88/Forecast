@@ -2,8 +2,9 @@
 
 **Obiettivi del capitolo**
 - Sapere con precisione cosa fa il chatbot già scritto su un branch separato, avendone letto il codice per intero.
-- Capire come chiude il ciclo addestramento→validazione→inferenza rimasto aperto sul branch `master` (capitolo 2.2).
+- Capire come chiude il ciclo addestramento→validazione→inferenza rimasto aperto sulle otto fasi orchestrate da `main.py` (capitolo 2.2).
 - Riconoscere i rischi specifici di un sistema conversazionale che stima un rischio clinico senza una validazione dedicata a questo scenario d'uso.
+- Confrontarlo con `inference.py`, la seconda implementazione dell'inferenza aggiunta più tardi su `master` stesso, ma deliberatamente tenuta fuori dalla pipeline orchestrata.
 
 **[Fatto, branch `chatbot`]** Il branch `chatbot` (mai unito a `master`, verificato con `git merge-base --is-ancestor`, capitolo 0) aggiunge tre file: `app_streamlit.py` (62 righe), `bot_telegram.py` (92 righe), `chatbot_core.py` (307 righe, letto per intero in questa sessione). Sono l'unico punto dell'intero progetto in cui il ciclo addestramento→validazione→inferenza (capitolo 2.2) si chiude con un'inferenza reale su un caso nuovo.
 
@@ -48,9 +49,19 @@ sequenceDiagram
 
 > **ATTENZIONE —** nessuno di questi due rischi invalida l'utilità potenziale di un prototipo come questo per scopi educativi o di ricerca — ma renderlo uno strumento realmente usato da pazienti richiederebbe una validazione specifica per questo scenario, distinta dalla validazione (già limitata, Parte XI) della pipeline offline da cui eredita il modello.
 
+## 54.4 Confronto con `inference.py` su `master`
+
+**[Fatto]** Dopo la scrittura di questo capitolo, `master` ha acquisito una seconda implementazione dell'inferenza, indipendente dal chatbot: `inference.py`, una funzione (`predict_record()`) più una CLI, deliberatamente **non richiamata da nessuna delle otto fasi** che `main.py` orchestra — un'utility a sé, pensata per una dimostrazione puntuale (per esempio in sede di discussione di tesi), non per l'uso clinico. La documentazione completa è in `docs/INFERENCE.md`; qui interessa il confronto diretto con `chatbot_core.py`, perché risolve due dei punti critici appena discussi in questo capitolo.
+
+**[Fatto]** Primo, l'allineamento fra soglia e classificatore (già criticato al paragrafo 54.1): `_load_deployed_bundle()` del chatbot riaddestra il classificatore sul 100% dei dati ma riusa la soglia $\tau$ media dei 5 fold di cross-validation, calcolata su classificatori *diversi*. `inference.py` evita questo disallineamento applicando lo stesso schema fit/calibrazione già visto al capitolo 23.2: allena su un 80% degli embedding di training disponibili, calibra $\tau$ sul restante 20% con `function.optimal_f1_threshold()`, e solo allora punteggia il nuovo record — soglia e classificatore condividono sempre lo stesso fit.
+
+**[Fatto]** Secondo, l'asimmetria sui valori mancanti (paragrafo 54.3): il chatbot richiede sempre una risposta valida a ogni domanda, quindi non esercita mai il percorso "not recorded" che il modello ha imparato a interpretare per `ca`/`thal` nel training set (imputati nel 66%/53% dei casi, capitolo 29.3). `inference.py` permette invece a chi chiama di dichiarare esplicitamente un valore sconosciuto — ma solo per le colonne che il run salvato di quel dataset ha effettivamente marcato con un indicatore di mancanza (lette dall'intestazione di `X_train_raw.csv`, non scritte a mano nel modulo): per quelle, il testo generato diventa "not recorded", esattamente come in addestramento. Su ogni altro campo, `inference.py` è più rigido del chatbot, non più permissivo: rifiuta la chiamata invece di indovinare, perché il progetto non conserva da nessuna parte le statistiche di imputazione calcolate in addestramento che servirebbero per riempire un valore mancante senza inventarlo.
+
+> **RIFERIMENTO AL CODICE —** nessuna delle due implementazioni sostituisce l'altra: il chatbot resta l'unico dei due a offrire un'interfaccia conversazionale (Telegram/Streamlit) e i relativi disclaimer (paragrafo 54.3); `inference.py` resta privo di qualunque avvertenza integrata e presuppone che chi lo chiama sappia già cosa il suo output significa e non significa — un promemoria che vale anche per un uso dimostrativo in sede di discussione.
+
 ## Riepilogo
 
-Il chatbot, esistente solo su un branch non unito, chiude il ciclo di inferenza rimasto aperto sul resto del progetto, riusando elegantemente le funzioni di conversione testo già lette al capitolo 22. Addestra però un classificatore nuovo sull'intero dataset, riusando una soglia calibrata su classificatori diversi (quelli della cross-validation), e affronta un'asimmetria non banale fra un training set con valori spesso imputati e un'inferenza con input sempre genuini. I disclaimer già presenti nel codice sono una buona pratica, ma non sostituiscono una validazione specifica per lo scenario conversazionale.
+Il chatbot, esistente solo su un branch non unito, chiude il ciclo di inferenza rimasto aperto sulla pipeline orchestrata, riusando elegantemente le funzioni di conversione testo già lette al capitolo 22. Addestra però un classificatore nuovo sull'intero dataset, riusando una soglia calibrata su classificatori diversi (quelli della cross-validation), e affronta un'asimmetria non banale fra un training set con valori spesso imputati e un'inferenza con input sempre genuini. I disclaimer già presenti nel codice sono una buona pratica, ma non sostituiscono una validazione specifica per lo scenario conversazionale. `inference.py`, aggiunto più tardi su `master` ma tenuto fuori dalle otto fasi orchestrate, risolve entrambi i punti critici tecnici (soglia allineata al fit, gestione esplicita dei valori mancanti) senza però offrire i disclaimer e l'interfaccia conversazionale del chatbot — due implementazioni con obiettivi diversi, non una migliore dell'altra in assoluto.
 
 ## Domande di autoverifica
 

@@ -38,12 +38,12 @@ Verifica: `pip list` deve mostrare, fra le altre, `pandas`, `scikit-learn`, `tor
 **4. Installa e avvia Ollama, poi scarica i quattro modelli generalisti** (`function.py:38-43`, capitolo 20.1):
 ```bash
 ollama serve &
-ollama pull yxchia/multilingual-e5-base
+ollama pull jeffh/intfloat-e5-base-v2:q8_0
 ollama pull twwch/m3e-base
 ollama pull zyw0605688/gte-large-zh
 ollama pull jeffh/intfloat-multilingual-e5-large-instruct:q8_0
 ```
-Verifica: `ollama list` deve elencare i quattro modelli — ma qui c'è un problema reale, non ipotetico. **[Fatto]** Il primo comando `pull` di `README.md:104` scarica `yxchia/multilingual-e5-base`. **[Fatto]** La configurazione del modello e5-base in `function.py:39` usa però il nome `jeffh/intfloat-e5-base-v2:q8_0` — un identificativo diverso sul registro dei modelli di Ollama, non un alias dello stesso modello. **[Fatto]** In questo ambiente di scrittura, `ollama list` (comando eseguito in questa sessione) mostra effettivamente `jeffh/intfloat-e5-base-v2:q8_0` installato — non `yxchia/multilingual-e5-base` — cioè il modello giusto per far funzionare `function.py`, diverso da quello che il README istruisce a scaricare. **Conseguenza pratica per chi segue il README alla lettera:** eseguendo solo i quattro comandi di `README.md:103-107`, la pipeline fallirebbe alla fase di embedding per il modello e5-base con un errore "model not found", perché il modello scaricato non è quello richiesto da `embedding.py` quando chiama `client.embed(model=name, ...)` con `name` preso da `function.py:39`. Gli altri tre comandi `pull` (gte-base, gte-large, e5-large) corrispondono invece esattamente ai nomi usati in `function.py:40-42` — la discrepanza riguarda solo il primo modello. **[Da verificare]** Se sia un refuso di battitura nel README (un nome di modello simile ma sbagliato) o il residuo di una versione precedente del progetto che usava davvero `yxchia/multilingual-e5-base`, resta una domanda per chi ha scritto il codice (Appendice E).
+Verifica: `ollama list` deve elencare esattamente i quattro modelli usati da `function.py:38-43`. **[Fatto]** Questi comandi meritano una storia: per lungo tempo il primo comando in `README.md:104` istruiva a scaricare `yxchia/multilingual-e5-base` — un identificativo **diverso** da quello che la configurazione di e5-base in `function.py:39` richiede davvero (`jeffh/intfloat-e5-base-v2:q8_0`), non un alias dello stesso modello. Chi avesse seguito il README alla lettera avrebbe visto la pipeline fallire alla fase di embedding con un errore "model not found" per e5-base, mentre gli altri tre comandi `pull` erano corretti. La discrepanza è stata scoperta durante la ricognizione per questo libro incrociando README, `function.py` e l'output reale di `ollama list` in questo ambiente (che aveva installato il modello giusto, non quello del README), ed è stata corretta nel README dai fix di revisione (`docs/CHANGES.md` §10). I comandi qui sopra riflettono il README corretto.
 
 **5. Crea un file `.env` nella radice del progetto:**
 ```
@@ -58,7 +58,7 @@ python main.py
 ```
 Verifica: vedi il paragrafo successivo.
 
-> **ATTENZIONE —** `python main.py` senza argomenti esegue **solo** il dataset Heart Disease (`main.py:15`, default `heart_disease`). Per eseguire anche Diabetes130 serve `python main.py --dataset diabetes130`, come comando separato — non è un'opzione che esegue entrambi i dataset in sequenza.
+> **ATTENZIONE —** `python main.py` senza argomenti esegue **solo** il dataset Heart Disease (`main.py:20`, default `heart_disease`). Per eseguire anche Diabetes130 serve `python main.py --dataset diabetes130`, come comando separato — non è un'opzione che esegue entrambi i dataset in sequenza.
 
 ## 15.3 Prima esecuzione: `python main.py --dataset heart_disease`
 
@@ -78,7 +78,7 @@ L'installazione richiede tre prerequisiti (Python 3.14 nativo `arm64`, Ollama in
 `which python3` (o l'equivalente `where` su altre shell): deve puntare a un eseguibile dentro la cartella `env/`, non al Python di sistema.
 
 **2. Cosa succede se esegui `python main.py` senza alcun argomento, e cosa NON succede?**
-Viene eseguita solo la pipeline per il dataset Heart Disease, il default di `main.py:15`. Non viene eseguito anche Diabetes130: serve un comando separato con `--dataset diabetes130` esplicito.
+Viene eseguita solo la pipeline per il dataset Heart Disease, il default di `main.py:20`. Non viene eseguito anche Diabetes130: serve un comando separato con `--dataset diabetes130` esplicito.
 
 **3. Perché il file `.env` non va mai committato nel repository, a differenza di `requirements.txt`?**
 Perché contiene una credenziale personale (`HF_READ_TOKEN`), non una configurazione condivisibile fra chiunque cloni il progetto — è per questo escluso esplicitamente in `.gitignore:2`.

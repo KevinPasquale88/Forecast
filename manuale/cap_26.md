@@ -6,11 +6,11 @@
 - Sapere cosa testano davvero Wilcoxon, t-test appaiato e DeLong, e su quali dati esattamente.
 - Riconoscere perché usarli insieme è una scelta di robustezza, non una ridondanza.
 
-**[Fatto]** `statisticaltest.py` (123 righe) è la fase 6 (`main.py:49`): l'unico file che confronta esplicitamente i modelli fra loro, invece di descriverli uno alla volta.
+**[Fatto]** `statisticaltest.py` (153 righe) è la fase 6 (`main.py:62`): l'unico file che confronta esplicitamente i modelli fra loro, invece di descriverli uno alla volta.
 
 ## 26.1 Wilcoxon e t-test appaiato sulle distribuzioni bootstrap
 
-**[Fatto]** `test_statistical_tests()` (righe 10-68) confronta ogni coppia possibile fra i sette modelli, per ciascuna delle tre metriche, usando le distribuzioni bootstrap già salvate da `evaluation.py`:
+**[Fatto]** `test_statistical_tests()` (righe 38-98) confronta ogni coppia possibile fra i sette modelli, per ciascuna delle tre metriche, usando le distribuzioni bootstrap già salvate da `evaluation.py`:
 ```python
 for metric in metrics:
     boot_scores = {}
@@ -26,11 +26,11 @@ for metric in metrics:
 ```
 `for j in range(i + 1, len(models))`, non `range(len(models))`, è la forma standard per generare ogni coppia **una sola volta** (confrontare A con B è la stessa cosa di confrontare B con A, non serve farlo due volte) — con 7 modelli, questo produce $\binom{7}{2} = 21$ confronti per metrica, 63 in totale per i tre test Wilcoxon/t-test, più 21 per DeLong (capitolo 26.2).
 
-**[Livello: teoria consolidata del settore]** Sia Wilcoxon sia il t-test appaiato confrontano due campioni **accoppiati** — qui, i 10.000 valori bootstrap di un modello contro i 10.000 valori bootstrap corrispondenti dell'altro, ricampionati con lo stesso seme (capitolo 24.1) e quindi confrontabili posizione per posizione. Il **test di Wilcoxon signed-rank** è non parametrico: non assume che le differenze fra coppie seguano una distribuzione normale, e si basa sui ranghi delle differenze, non sui loro valori esatti — più robusto quando la distribuzione reale si discosta dalla normalità, un'ipotesi spesso ragionevole per dati clinici. Il **t-test appaiato** assume invece che le differenze siano approssimativamente normali, e in cambio ha più potenza statistica (rileva differenze più piccole come significative) se quell'assunzione regge davvero. **[Fatto]** Entrambi restituiscono una statistica del test e un p-value, salvati insieme alle medie dei due modelli e a un flag binario di significatività a $\alpha = 0.05$ (righe 44,57: `"1" if p_w < 0.05 else "0"`) — **[Attenzione]** notato come stringa `"1"`/`"0"`, non come intero o booleano: un dettaglio da tenere presente se in futuro si volesse filtrare il CSV risultante per riga significativa, perché un confronto numerico diretto (`== 1`) fallirebbe silenziosamente contro una stringa.
+**[Livello: teoria consolidata del settore]** Sia Wilcoxon sia il t-test appaiato confrontano due campioni **accoppiati** — qui, i 10.000 valori bootstrap di un modello contro i 10.000 valori bootstrap corrispondenti dell'altro, ricampionati con lo stesso seme (capitolo 24.1) e quindi confrontabili posizione per posizione. Il **test di Wilcoxon signed-rank** è non parametrico: non assume che le differenze fra coppie seguano una distribuzione normale, e si basa sui ranghi delle differenze, non sui loro valori esatti — più robusto quando la distribuzione reale si discosta dalla normalità, un'ipotesi spesso ragionevole per dati clinici. Il **t-test appaiato** assume invece che le differenze siano approssimativamente normali, e in cambio ha più potenza statistica (rileva differenze più piccole come significative) se quell'assunzione regge davvero. **[Fatto]** Entrambi restituiscono una statistica del test e un p-value, salvati insieme alle medie dei due modelli e a un flag binario di significatività a $\alpha = 0.05$ (righe 72,85: `"1" if p_w < 0.05 else "0"`) — **[Attenzione]** notato come stringa `"1"`/`"0"`, non come intero o booleano: un dettaglio da tenere presente se in futuro si volesse filtrare il CSV risultante per riga significativa, perché un confronto numerico diretto (`== 1`) fallirebbe silenziosamente contro una stringa.
 
 ## 26.2 Il test di DeLong e la libreria `MLstatkit`
 
-**[Fatto]** `test_delong()` (righe 70-124) confronta, per ogni coppia di modelli, l'AUC calcolata sugli stessi dati di validazione, usando una libreria esterna:
+**[Fatto]** `test_delong()` (righe 100-154) confronta, per ogni coppia di modelli, l'AUC calcolata sugli stessi dati di validazione, usando una libreria esterna:
 ```python
 from MLstatkit import Delong_test
 ...
@@ -39,9 +39,13 @@ z, p, auc_a, auc_b = Delong_test(
     return_ci=False, return_auc=True, verbose=0,
 )
 ```
-**[Livello: teoria consolidata del settore]** Il **test di DeLong** è specifico per confrontare due AUC calcolate sugli *stessi* casi (stesse etichette vere): a differenza di Wilcoxon e t-test applicati qui alle distribuzioni bootstrap, DeLong lavora direttamente sui punteggi di probabilità originali (`y_score`) e tiene conto esplicitamente della correlazione fra le due AUC che nasce dal fatto che entrambi i modelli sono valutati sugli stessi pazienti — ignorare questa correlazione (per esempio trattando le due AUC come se venissero da campioni indipendenti) produrrebbe una stima della significatività meno accurata. **[Fatto]** Prima di ogni confronto, il codice verifica esplicitamente che le etichette vere dei due modelli coincidano (righe 91-93: `if not np.array_equal(y_true_a, y_true_b): print("[WARNING] ...") continue`) — una precondizione necessaria perché il test di DeLong abbia senso, dato che confronta AUC sugli stessi casi.
+**[Livello: teoria consolidata del settore]** Il **test di DeLong** è specifico per confrontare due AUC calcolate sugli *stessi* casi (stesse etichette vere): a differenza di Wilcoxon e t-test applicati qui alle distribuzioni bootstrap, DeLong lavora direttamente sui punteggi di probabilità originali (`y_score`) e tiene conto esplicitamente della correlazione fra le due AUC che nasce dal fatto che entrambi i modelli sono valutati sugli stessi pazienti — ignorare questa correlazione (per esempio trattando le due AUC come se venissero da campioni indipendenti) produrrebbe una stima della significatività meno accurata. **[Fatto]** Prima di ogni confronto, il codice verifica esplicitamente che le etichette vere dei due modelli coincidano (righe 121-123: `if not np.array_equal(y_true_a, y_true_b): print("[WARNING] ...") continue`) — una precondizione necessaria perché il test di DeLong abbia senso, dato che confronta AUC sugli stessi casi.
 
 **[Fatto]** `MLstatkit` (`requirements.txt`, versione 0.1.91) è l'unica dipendenza del progetto dedicata a un singolo test statistico specifico, non a una libreria generalista come `scipy` (da cui vengono `wilcoxon` e `ttest_rel`, riga 6-7) — una scelta che riflette quanto un'implementazione corretta del test di DeLong sia più delicata da scrivere da zero rispetto a un t-test o a un Wilcoxon, entrambi disponibili direttamente in `scipy.stats`.
+
+## 26.2bis La correzione per confronti multipli: Benjamini-Hochberg
+
+**[Fatto]** Con 21 confronti a coppie per metrica, un problema statistico noto entra in scena: eseguendo abbastanza test simultanei, alcuni p-value scendono sotto 0.05 per puro caso anche se nessuna differenza reale esiste (con $\alpha = 0.05$ e 21 test indipendenti tutti nulli, in media un test "significativo" spurio è atteso comunque). Per questo `statisticaltest.py` applica la correzione di **Benjamini-Hochberg**, che controlla il *false discovery rate*: `_benjamini_hochberg()` (righe 11-28) ordina i p-value, li riscala per rango (`p * n / rango`), impone la monotonicità e li riporta nell'ordine originale; `_add_bh_columns()` (righe 31-36) aggiunge a ciascun CSV le colonne `p_value_bh` e `significant_bh` **accanto** — non al posto — di `p_value`/`significant`, così entrambe le letture (grezza e corretta) restano disponibili al lettore. La correzione è applicata separatamente per ciascuno dei tre CSV di confronto (righe 91-96 e 152).
 
 ## 26.3 Perché tre test invece di uno
 
@@ -53,8 +57,8 @@ z, p, auc_a, auc_b = Delong_test(
 
 | Funzione | Parametri | Effetti |
 |---|---|---|
-| `test_statistical_tests(dataset="heart_disease")` | Nome dataset | Salva `wilcoxon_comparison.csv`, `ttest_comparison.csv`; chiama `test_delong()` |
-| `test_delong(dirs)` | Dizionario percorsi | Salva `delong_comparison.csv` |
+| `test_statistical_tests(dataset="heart_disease")` | Nome dataset | Salva `wilcoxon_comparison.csv`, `ttest_comparison.csv` (con colonne BH); chiama `test_delong()` |
+| `test_delong(dirs)` | Dizionario percorsi | Salva `delong_comparison.csv` (con colonne BH) |
 
 ## Errori tipici
 
@@ -62,7 +66,7 @@ Un avviso `[WARNING] y_true diversi per A vs B — skip` in console indica che d
 
 ## Riepilogo
 
-`statisticaltest.py` confronta ogni coppia dei sette modelli con tre test diversi — Wilcoxon e t-test appaiato sulle distribuzioni bootstrap, DeLong sull'AUC diretta con una libreria dedicata — motivati dalla logica della triangolazione: tre garanzie statistiche diverse, la cui concordanza rafforza la fiducia nella conclusione più di quanto farebbe un singolo test.
+`statisticaltest.py` confronta ogni coppia dei sette modelli con tre test diversi — Wilcoxon e t-test appaiato sulle distribuzioni bootstrap, DeLong sull'AUC diretta con una libreria dedicata — motivati dalla logica della triangolazione: tre garanzie statistiche diverse, la cui concordanza rafforza la fiducia nella conclusione più di quanto farebbe un singolo test. Ai 21 confronti per metrica si applica inoltre la correzione di Benjamini-Hochberg, che affianca a ogni p-value grezzo la versione aggiustata per i confronti multipli.
 
 ## Domande di autoverifica
 

@@ -4,23 +4,26 @@ flowchart TB
         DS2["datasets/diabetes+130.../\ndiabetic_data.csv"]
     end
 
-    subgraph Pipeline["Le sette fasi orchestrate da main.py"]
+    subgraph Pipeline["Le otto fasi orchestrate da main.py"]
         direction TB
         P1["1. preprocessing.py\npreprocessing_data()"]
-        P2["2. embedding.py\nembeddings()"]
+        P2["2. embedding.py\nembeddings() ×2\n(pool di training + test set)"]
         P3["3. classification.py\ntraining_classifier()"]
         P4["4. evaluation.py\nevaluate_results()"]
         P5["5. error_analysis.py\nanalyze_errors()"]
         P6["6. statisticaltest.py\ntest_statistical_tests()"]
-        P7["7. generatereport.py\ngenerate_report()"]
+        P7["7. holdout_evaluation.py\nevaluate_holdout()"]
+        P8["8. generatereport.py\ngenerate_report()"]
         P1 -->|"X, y in memoria"| P2
         P2 -.->|"file .npy su disco"| P3
         P3 -.->|"file .npy su disco"| P4
         P3 -.->|"file .npy/.csv su disco"| P5
         P4 -.->|"file .npy su disco"| P6
-        P6 -.->|"file .csv su disco"| P7
-        P4 -.->|"file .csv su disco"| P7
-        P5 -.->|"file .csv su disco"| P7
+        P2 -.->|"file *_test.npy su disco"| P7
+        P6 -.->|"file .csv su disco"| P8
+        P4 -.->|"file .csv su disco"| P8
+        P5 -.->|"file .csv su disco"| P8
+        P7 -.->|"file .csv su disco"| P8
     end
 
     subgraph Hub["function.py — configurazione e utility condivise"]
@@ -36,9 +39,9 @@ flowchart TB
     end
 
     DS1 & DS2 --> P1
-    Hub -.->|"importato da tutti\ne sette i moduli"| Pipeline
+    Hub -.->|"importato da tutti\ne otto i moduli"| Pipeline
     P1 --> O1
     P2 --> O2
-    P3 & P4 & P5 & P6 --> O3
+    P3 & P4 & P5 & P6 & P7 --> O3
     P4 --> O4
-    P7 --> O5
+    P8 --> O5

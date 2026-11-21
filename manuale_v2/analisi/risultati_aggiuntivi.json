@@ -1,0 +1,119 @@
+{
+  "baseline": {
+    "heart_disease": {
+      "regressione_logistica": {
+        "cv_auc": 0.8958910626661304,
+        "cv_auc_std": 0.01995606580361258,
+        "cv_pr_auc": 0.9094449954053895,
+        "test_auc": 0.9142754662840746,
+        "test_pr_auc": 0.9057937212488514,
+        "test_brier": 0.11081866654882293,
+        "test_precision": 0.8245614035087719,
+        "test_recall": 0.9215686274509803,
+        "tau": 0.41418921670748804
+      },
+      "gradient_boosting": {
+        "cv_auc": 0.864575944982449,
+        "cv_auc_std": 0.03152075446675629,
+        "cv_pr_auc": 0.8585204293223768,
+        "test_auc": 0.8923959827833572,
+        "test_pr_auc": 0.8888901220309158,
+        "test_brier": 0.13291653559634742,
+        "test_precision": 0.8141592920353983,
+        "test_recall": 0.9019607843137255,
+        "tau": 0.3662609961498549
+      }
+    },
+    "diabetes130": {
+      "regressione_logistica": {
+        "cv_auc": 0.6176691531362174,
+        "cv_auc_std": 0.021913976932521208,
+        "cv_pr_auc": 0.14835354323105018,
+        "test_auc": 0.6437240985709793,
+        "test_pr_auc": 0.17014168268010038,
+        "test_brier": 0.07934694847003504,
+        "test_precision": 0.15799803729146222,
+        "test_recall": 0.44846796657381616,
+        "tau": 0.10115334079226536
+      },
+      "gradient_boosting": {
+        "cv_auc": 0.6114126362429207,
+        "cv_auc_std": 0.018948959135584524,
+        "cv_pr_auc": 0.1472396283829691,
+        "test_auc": 0.635747395608204,
+        "test_pr_auc": 0.15443759640620336,
+        "test_brier": 0.07989363514031113,
+        "test_precision": 0.14324817518248176,
+        "test_recall": 0.4373259052924791,
+        "tau": 0.10063761234148628
+      }
+    }
+  },
+  "heart_centri": {
+    "per_centro": [
+      {
+        "centro": "Cleveland",
+        "n_train": 248,
+        "prevalenza_train": 0.45564516129032256,
+        "e5-base": 0.8760406424123238,
+        "gte-base": 0.8782038675843986,
+        "gte-large": 0.8546705998033433,
+        "e5-large": 0.8895444116683056,
+        "bioclinicalbert": 0.8751229105211407,
+        "pubmedbert": 0.8803670927564733,
+        "sentence-biobert": 0.8730907899049493
+      },
+      {
+        "centro": "Ungheria",
+        "n_train": 230,
+        "prevalenza_train": 0.3652173913043478,
+        "e5-base": 0.8866601435094587,
+        "gte-base": 0.8918786692759295,
+        "gte-large": 0.8537997390737116,
+        "e5-large": 0.8796477495107632,
+        "bioclinicalbert": 0.8842954990215264,
+        "pubmedbert": 0.9080234833659491,
+        "sentence-biobert": 0.8708414872798433
+      },
+      {
+        "centro": "Svizzera",
+        "n_train": 95,
+        "prevalenza_train": 0.9263157894736842,
+        "e5-base": 0.7353896103896104,
+        "gte-base": 0.7613636363636364,
+        "gte-large": 0.6915584415584416,
+        "e5-large": 0.7808441558441558,
+        "bioclinicalbert": 0.7581168831168831,
+        "pubmedbert": 0.8327922077922078,
+        "sentence-biobert": 0.7613636363636364
+      },
+      {
+        "centro": "Long Beach VA",
+        "n_train": 163,
+        "prevalenza_train": 0.7484662576687117,
+        "e5-base": 0.6741303478608557,
+        "gte-base": 0.6865253898440623,
+        "gte-large": 0.6367453018792483,
+        "e5-large": 0.6745301879248301,
+        "bioclinicalbert": 0.6875249900039984,
+        "pubmedbert": 0.6993202718912434,
+        "sentence-biobert": 0.6895241903238705
+      }
+    ],
+    "auc_solo_prevalenza_centro": 0.7015526164462333
+  },
+  "heart_solo_mancanza": {
+    "auc_cv": 0.7389826964295049,
+    "campi": [
+      "trestbps",
+      "chol",
+      "fbs",
+      "thalach",
+      "exang",
+      "oldpeak",
+      "slope",
+      "ca",
+      "thal"
+    ]
+  }
+}

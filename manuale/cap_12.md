@@ -16,7 +16,7 @@ Questo non significa che il threading in Python sia inutile — significa che è
 
 ## 12.2 `ThreadPoolExecutor` e `Semaphore` nel progetto, confrontati con `ExecutorService`
 
-**[Fatto]** `embedding.py:201-209` orchestra la generazione di embedding per tutti i 7 modelli con un pool di thread:
+**[Fatto]** `embedding.py:226-234` orchestra la generazione di embedding per tutti i 7 modelli con un pool di thread:
 ```python
 def generate_all_embeddings(texts, labels, embeddings_dir, max_workers=3):
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
@@ -30,9 +30,9 @@ def generate_all_embeddings(texts, labels, embeddings_dir, max_workers=3):
 
 **[Fatto]** Con `max_workers=3` e 7 modelli in `models_all`, al più tre modelli vengono processati "in parallelo" in un dato momento — ma solo nel senso spiegato al paragrafo precedente: attesa di rete o calcolo nativo, non bytecode Python puro. Il codice restringe ulteriormente questo parallelismo per i modelli serviti da Ollama, con un semaforo dichiarato a livello di modulo:
 ```python
-_ollama_semaphore = threading.Semaphore(1)     # embedding.py:101
+_ollama_semaphore = threading.Semaphore(1)     # embedding.py:116
 ```
-usato in `generate_embeddings_batch()` (`embedding.py:117`) per avvolgere ogni singola chiamata `client.embed(...)`. Un `Semaphore(1)` con un solo permesso disponibile equivale, in pratica, a un lock esclusivo: **una sola chiamata a Ollama alla volta**, anche se più thread del pool ci arrivano nello stesso momento — gli altri aspettano in coda finché il permesso non si libera. **[Fatto]** Il motivo è documentato direttamente nel codice, in un commento (`embedding.py:95-100`): il server locale di Ollama può esaurire le porte effimere del sistema operativo, o sovraccaricarsi, se riceve troppe richieste contemporanee da thread diversi — serializzare le chiamate mantiene sempre una sola richiesta HTTP realmente in transito verso quel server specifico.
+usato in `generate_embeddings_batch()` (`embedding.py:132`) per avvolgere ogni singola chiamata `client.embed(...)`. Un `Semaphore(1)` con un solo permesso disponibile equivale, in pratica, a un lock esclusivo: **una sola chiamata a Ollama alla volta**, anche se più thread del pool ci arrivano nello stesso momento — gli altri aspettano in coda finché il permesso non si libera. **[Fatto]** Il motivo è documentato direttamente nel codice, in un commento (`embedding.py:110-115`): il server locale di Ollama può esaurire le porte effimere del sistema operativo, o sovraccaricarsi, se riceve troppe richieste contemporanee da thread diversi — serializzare le chiamate mantiene sempre una sola richiesta HTTP realmente in transito verso quel server specifico.
 
 ```mermaid
 flowchart TB
@@ -55,7 +55,7 @@ flowchart TB
 
 **[Livello: teoria consolidata del settore]** CPython gestisce la memoria con un contatore di riferimenti per ogni oggetto: quando il contatore arriva a zero (nessuna variabile punta più a quell'oggetto), la memoria viene liberata immediatamente, non a un ciclo di garbage collection successivo. Un garbage collector separato interviene solo per i riferimenti ciclici (due oggetti che si riferiscono a vicenda, che il solo conteggio non riuscirebbe mai a portare a zero da soli). È un modello diverso da quello della JVM (che non usa il conteggio di riferimenti come meccanismo primario), ma il risultato pratico per chi scrive codice applicativo è simile: la memoria è gestita automaticamente, non la liberi mai esplicitamente tu.
 
-**[Fatto]** Non troverai, in nessuno dei nove file del progetto, una singola riga dedicata alla gestione della memoria — nessun equivalente di `close()` chiamato manualmente su una struttura dati, nessun tentativo di "liberare" un DataFrame o un array NumPy quando non serve più. È l'atteso stato di cose: su questo punto specifico, Python non richiede a chi scrive il codice applicativo un'attenzione diversa da quella che richiederebbe Java. La sola gestione esplicita di risorse nel progetto riguarda risorse *esterne* alla memoria del processo — file, thread, un semaforo — ed è quella vista al capitolo 11.2 con `with`.
+**[Fatto]** Non troverai, in nessuno degli undici file del progetto, una singola riga dedicata alla gestione della memoria — nessun equivalente di `close()` chiamato manualmente su una struttura dati, nessun tentativo di "liberare" un DataFrame o un array NumPy quando non serve più. È l'atteso stato di cose: su questo punto specifico, Python non richiede a chi scrive il codice applicativo un'attenzione diversa da quella che richiederebbe Java. La sola gestione esplicita di risorse nel progetto riguarda risorse *esterne* alla memoria del processo — file, thread, un semaforo — ed è quella vista al capitolo 11.2 con `with`.
 
 ## Riepilogo
 
@@ -75,4 +75,4 @@ Perché la memoria del processo (oggetti Python come DataFrame e array NumPy) è
 > **MATERIALE PER LA TESI**
 > 1. Il diagramma Mermaid del pool di thread e del semaforo (Figura 12.1), con la spiegazione del perché la concorrenza reale è più limitata di quanto sembri da `max_workers=3` — riusabile come figura tecnica in "Materiali e metodi".
 > 2. La spiegazione del Global Interpreter Lock applicata al caso concreto di questo progetto (I/O-bound, non CPU-bound) — riusabile per giustificare la scelta di `ThreadPoolExecutor` invece che, per esempio, il multiprocessing.
-> 3. Il commento originale del codice sul motivo del semaforo (`embedding.py:95-100`), citato per esteso — riusabile come esempio di documentazione delle scelte progettuali trovata direttamente nel codice, utile per una discussione sulla qualità della documentazione interna del progetto.
+> 3. Il commento originale del codice sul motivo del semaforo (`embedding.py:110-115`), citato per esteso — riusabile come esempio di documentazione delle scelte progettuali trovata direttamente nel codice, utile per una discussione sulla qualità della documentazione interna del progetto.
