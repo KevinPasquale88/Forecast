@@ -13,17 +13,16 @@ from function import (
     get_output_dirs,
 )
 
-#main preprocessing function: load the raw records and hold out an untouched, stratified 20% test
-#split. dataset: "heart_disease" (default) or "diabetes130"
+# Main preprocessing function: load the raw records and hold out an untouched, stratified 20%
+# test split. dataset: "heart_disease" (default) or "diabetes130".
 #
 # No imputation and no oversampling of the records that get embedded:
 # - a missing value stays missing and becomes "not recorded" in the generated text, so an absent
 #   measurement is never presented to the encoder as if it had been observed;
-# - SMOTENC used to balance the training pool *before* cross-validation. On Diabetes130 87% of
-#   the positives were then synthetic, interpolated from neighbours sitting in the other folds:
-#   the classifier learned to recognise synthetic records (CV AUC ~0.76) while its AUC on real
-#   records, in CV and on the test split alike, was ~0.50-0.55. Class imbalance is now handled
-#   by the decision threshold (classification.py) instead. See docs/CHANGES.md.
+# - class imbalance is handled by the decision threshold (function.fit_classifier), not by
+#   oversampling. SMOTENC applied before cross-validation inflated the Diabetes130 CV AUC from
+#   ~0.55 to ~0.76 (synthetic positives interpolated from records in other folds); see
+#   docs/CHANGES.md.
 def preprocessing_data(dataset="heart_disease"):
     dirs = get_output_dirs(dataset)
     sample_size = 20000
@@ -59,12 +58,10 @@ def preprocessing_data(dataset="heart_disease"):
     X_train_emb_df = data_processed(X_train_viz, y_train, encoder, num_cols_used, cat_cols_used)
     plot_umap(X_train_emb_df.drop("target", axis=1), X_train_emb_df["target"], "Preprocessed Data",
               graphics_dir=dirs["graphics"])
-    save_data_processed(X_train_emb_df, dirs["preprocessing"])
     plot_data_heatmap(X_train_emb_df, num_cols_used, graphics_dir=dirs["graphics"])
 
     # Raw training features (missing values left as empty cells), row-aligned with the training
-    # embeddings, so error_analysis.py can trace predictions back to the original record and
-    # inference.py can read which fields were ever missing in training.
+    # embeddings, so error_analysis.py can trace predictions back to the original record.
     X_train.to_csv(os.path.join(dirs["preprocessing"], "X_train_raw.csv"), index=False)
     # Held-out test split, persisted for traceability; never used by any training,
     # threshold-selection or model-comparison step.
@@ -74,12 +71,12 @@ def preprocessing_data(dataset="heart_disease"):
     return X_train, X_test, y_train, y_test
 
 
-#preparation functions (visualization only): impute, encode, save preprocessed data
+# Visualization-only helpers: impute, encode
 
 def fit_imputation_values(X, num_cols, cat_cols):
     """Compute the fill value (median for numeric columns, mode for categorical ones) for each
-    column, from X alone. Kept separate from apply_imputation so the same fitted values can be
-    re-applied to a different split (the test set) without recomputing them from it."""
+    column, from X alone. Kept separate from apply_imputation so fitting and applying can never
+    be accidentally done on different data."""
     fill_values = {}
     for col in num_cols:
         fill_values[col] = X[col].median()
@@ -95,14 +92,6 @@ def apply_imputation(X, fill_values):
         X[col] = X[col].fillna(value)
     return X
 
-
-def impute_raw(X, num_cols, cat_cols):
-    """Fit-and-apply imputation on X in one step. Equivalent to the original single-frame
-    behaviour of this function; preprocessing_data() itself now calls fit_imputation_values() /
-    apply_imputation() directly so it can fit once on the training split and apply the same
-    values to the test split, but this convenience form is kept for any other caller (including
-    tests) that only ever has one frame to impute."""
-    return apply_imputation(X, fit_imputation_values(X, num_cols, cat_cols))
 
 def build_encoder(X, y, num_cols, cat_cols):
     numeric_transformer = StandardScaler()
@@ -129,7 +118,3 @@ def data_processed(X_train, y_train, preprocessor, num_cols, cat_cols):
     X_train_emb_df = pd.DataFrame(X_train_emb, columns=feature_names)
     X_train_emb_df['target'] = np.asarray(y_train)
     return X_train_emb_df
-
-def save_data_processed(X_train_emb_df, preprocessing_dir):
-    np.save(os.path.join(preprocessing_dir, "preprocessed_data.npy"), X_train_emb_df.values)
-    np.save(os.path.join(preprocessing_dir, "preprocessed_labels.npy"), X_train_emb_df['target'].values)

@@ -1,239 +1,184 @@
-# Forecast — Local Clinical Text-Embedding Pipeline
+# Forecast — Semantic Embeddings for Clinical Classification using Local Language Models
 
-Automatic disease prediction from clinical datasets using a fully local pipeline based on modern encoders and Ollama.
+Forecast is the experimental pipeline of a thesis on clinical classification with locally run language models. Every structured clinical record is converted into an English sentence, encoded by a frozen text encoder running on the local machine, and classified by a linear probe (standardized embeddings + L2 logistic regression). Seven encoders from three families are compared on two clinical tasks, with nested cross-validation, a held-out test split, bootstrap confidence intervals, paired statistical tests and tabular baselines.
 
 ```mermaid
 flowchart LR
-    A[Raw UCI data\nHeart Disease / Diabetes130] --> B[Preprocessing\n80/20 split · no imputation · no oversampling]
-    B --> C[Tabular → Text\nrecord_to_text]
-    C --> D[Embedding\nOllama + sentence-transformers]
-    D --> E[Classification\nLogisticRegression · 5-fold CV]
-    E --> F[Evaluation\nbootstrap · plots]
-    F --> G[Error Analysis\nFP/FN tracing]
-    F --> H[Statistical Tests\nWilcoxon · t-test · DeLong]
-    G --> I[Markdown Report]
-    H --> I
+    A[Raw UCI data<br/>Heart Disease / Diabetes130] --> B[Preprocessing<br/>stratified 80/20 split<br/>no imputation, no oversampling]
+    B --> C[Tabular → text<br/>one sentence per record]
+    C --> D[Embeddings<br/>7 frozen encoders<br/>Ollama + sentence-transformers]
+    D --> E[Linear probe<br/>5-fold CV, C and threshold<br/>from inner CVs]
+    E --> F[Bootstrap 10,000<br/>CIs and plots]
+    F --> G[Error analysis]
+    F --> H[Statistical tests<br/>Wilcoxon · t-test · DeLong · BH]
+    D --> I[Held-out test split]
+    G --> J[Markdown report]
+    H --> J
+    I --> J
+    E --> K[Supplementary analyses<br/>tabular baselines · centres<br/>embedding scale]
+    K --> J
 ```
 
-## Highlights
-- **Fully local & private**: no external API calls — embeddings are generated via Ollama (general-purpose encoders) and local `sentence-transformers` (biomedical encoders).
-- **Tabular-to-text pipeline**: structured clinical records are converted into natural language before embedding, testing whether language-model representations capture clinical signal from tabular data.
-- **Two clinical benchmarks**: UCI Heart Disease (diagnosis) and Diabetes 130-US Hospitals (30-day readmission), selectable via `--dataset`, each with its own isolated output tree.
-- **General-purpose vs. biomedical comparison**: models are tagged by `family` (general-purpose, biomedical, biomedical sentence-transformers) enabling a direct comparison of domain-specific vs. general embeddings.
-- **Rigorous statistical validation**: 10,000-resample bootstrap plus Wilcoxon, paired t-test, and DeLong tests for every pairwise model comparison.
-- **Explainable failures**: every misclassification is traced back to the original clinical record, with per-feature deviation analysis of what characterizes the hardest cases.
-- **One-command reproducibility**: `main.py` (or `run_pipeline.sh`) orchestrates the entire pipeline end-to-end and produces a self-contained Markdown report.
+## Research questions
 
-## Repository Structure
-```
-Forecast/
-├── main.py                 # orchestrates all phases
-├── preprocessing.py        # data loading, 80/20 split, visualization encoding
-├── embedding.py            # model config + tabular-to-text + embedding generation
-├── classification.py       # classifier training and cross-validation
-├── evaluation.py           # bootstrap metrics and plotting orchestration
-├── error_analysis.py       # traces misclassifications to clinical records
-├── statisticaltest.py      # Wilcoxon, paired t-test, DeLong tests
-├── function.py              # shared config (model list/families), plot style
-├── generatereport.py       # assembles the final markdown report
-├── run_pipeline.sh/.bat/.ps1  # one-command setup + pipeline execution
-├── datasets/
-│   ├── heart+disease/                              # raw UCI Heart Disease source files
-│   └── diabetes+130-us+hospitals+for+years+1999-2008/  # raw UCI Diabetes130 source files
-├── datas/
-│   ├── heart_disease/       # per-dataset output tree (see below)
-│   │   ├── preprocessing/  # preprocessed features + raw CSV for traceability
-│   │   ├── embeddings/     # per-model embedding vectors and labels
-│   │   ├── results/        # predictions, bootstrap arrays, comparison CSVs, plots
-│   │   ├── graphics/       # UMAP, ROC, confusion matrix, heatmap plots
-│   │   └── reports/        # generated report.md
-│   └── diabetes130/        # same structure, isolated for the second dataset
-└── docs/
-    ├── DATASET.md          # full dataset description, ethics, limitations
-    └── STATISTICAL_TESTS.md # statistical methodology in depth
-```
+- **RQ1.** Do semantic embeddings generated locally by language models effectively support clinical classification, starting from structured data converted into natural language?
+- **RQ2.** Do encoders specialized for the biomedical domain produce more effective representations than general-purpose ones for this task?
 
-## Research Questions
-**Primary:**
-> Does using semantic embeddings generated locally by language models effectively support clinical classification tasks starting from structured data converted into natural language?
+## Main results
 
-**Secondary:**
-> Do embedding models specialized for the biomedical domain produce more effective semantic representations than general-purpose models for a clinical classification task based on tabular data transformed into text?
-
-The secondary question is answered directly by the pipeline's model configuration in [function.py](function.py), which tags every encoder with a `family`:
-
-| Family | Models | Source |
+| | Heart Disease | Diabetes130 |
 |---|---|---|
-| General-purpose | `e5-base`, `e5-large`, `gte-base`, `gte-large` | `models_ollama` |
-| Biomedical | `bioclinicalbert`, `pubmedbert` | `models_medical` |
-| Biomedical sentence-transformers | `sentence-biobert` | `models_medical` |
+| ROC-AUC of the 7 encoders, 5-fold CV | 0.849–0.890 | 0.600–0.609 |
+| ROC-AUC of the 7 encoders, test split | 0.889–0.925 | 0.605–0.622 |
+| Tabular logistic regression (CV / test) | 0.896 / 0.914 | 0.618 / 0.644 |
+| Mean AUC, biomedical vs general-purpose (CV) | 0.882 vs 0.870 | 0.605 vs 0.603 |
+| Significant DeLong comparisons (BH-corrected) | 9 of 21 (5 of 12 across families) | 0 of 21 |
 
-This grouping drives the Model Family Comparison plot (see [Evaluation and Visualization](#evaluation-and-visualization)) and the color palette used across every figure.
+On Heart Disease the best encoder (PubMedBERT) matches a logistic regression on the original columns; on Diabetes130 every approach has weak signal and the text representation loses one to two AUC points. The biomedical advantage is small, task-dependent, and was overstated when embeddings were not standardized: 3.8 instead of 1.2 points on Heart Disease, 8.6 instead of 0.3 on Diabetes130, where two general-purpose encoders fell to chance level; see `embedding_scale.csv` (phase 8). Full numbers and interpretation are in `datas/<dataset>/reports/report.md` and in the study manual (`manuale_v3/`).
 
 ## Datasets
-The pipeline supports two clinical datasets, selected with `--dataset` (default `heart_disease`):
 
-| Dataset | `--dataset` value | Records used | Features | Target |
-|---|---|---|---|---|
-| UCI Heart Disease | `heart_disease` | 920 (4 centres; 736 train / 184 test) | 13 clinical attributes | Disease presence (binary) |
-| Diabetes 130-US Hospitals | `diabetes130` | 20,000 (stratified sample of 69,990 first encounters; 16,000 train / 4,000 test, 9% positive) | 19 encounter attributes | Readmission within 30 days (binary) |
+| Dataset | `--dataset` | Records | Features | Target | Positives |
+|---|---|---|---|---|---|
+| UCI Heart Disease (4 centres) | `heart_disease` (default) | 920 (736 train / 184 test) | 13 clinical | coronary artery disease (`num > 0`) | 55% |
+| Diabetes 130-US Hospitals | `diabetes130` | 20,000 sampled from 69,990 first encounters (16,000 / 4,000) | 19 administrative and clinical | readmission within 30 days | 9% |
 
-Full details on origin, features, ethics, and limitations for both datasets are in **[docs/DATASET.md](docs/DATASET.md)**.
+Origin, cleaning, variables, missing values and limitations: **[docs/DATASET.md](docs/DATASET.md)**.
+
+## Encoders
+
+| Family | Pipeline label → actual model | Backend |
+|---|---|---|
+| General-purpose | `e5-base` → intfloat/e5-base-v2 (q8_0); `gte-base` → M3E-base; `gte-large` → GTE-large-zh; `e5-large` → multilingual-e5-large-instruct (q8_0) | Ollama |
+| Biomedical | `bioclinicalbert` → emilyalsentzer/Bio_ClinicalBERT; `pubmedbert` → NeuML/pubmedbert-base-embeddings | sentence-transformers |
+| Biomedical sentence-transformer | `sentence-biobert` → pritamdeka/BioBERT-mnli-snli-scinli-scitail-mednli-stsb | sentence-transformers |
+
+Three labels do not match the model behind them (`gte-base`, `gte-large`, `e5-large`): use the actual model names when reporting results. The configuration is in `models_ollama` / `models_medical` in [function.py](function.py).
+
+## Repository structure
+
+```
+Forecast/
+├── main.py                  # runs the 9 phases for one dataset
+├── function.py              # configuration, data loading, linear probe, output folders, plots
+├── preprocessing.py         # phase 1: stratified split, visualization-only imputed copy
+├── embedding.py             # phase 2: record → sentence, embeddings via Ollama / sentence-transformers
+├── classification.py        # phase 3: 5-fold CV with nested choice of C and threshold
+├── evaluation.py            # phase 4: bootstrap CIs and plots
+├── error_analysis.py        # phase 5: false positives/negatives, hardest cases, feature deviation
+├── statisticaltest.py       # phase 6: Wilcoxon, paired t-test, DeLong, Benjamini-Hochberg
+├── holdout_evaluation.py    # phase 7: one measurement on the held-out test split
+├── supplementary_analysis.py # phase 8: tabular baselines, per-centre AUC, embedding-scale sensitivity
+├── generatereport.py        # phase 9: datas/<dataset>/reports/report.md
+├── tests/                   # unit tests (no network, no Ollama)
+├── datasets/                # raw UCI files
+├── datas/<dataset>/         # outputs: preprocessing, embeddings, results, graphics, reports
+├── docs/                    # dataset, statistical tests, change log
+├── manuale_v3/              # study manual (Italian): chapters, figures, EPUB/HTML build
+└── run_pipeline.sh/.bat/.ps1  # environment setup + Ollama models + main.py (macOS/Linux, Windows cmd, PowerShell)
+```
+
+## Method in brief
+
+| Step | What happens | Why |
+|---|---|---|
+| Split | Stratified 80/20, seed 42, before anything else | The test split never influences any choice |
+| Missing values | Not imputed: written as `not recorded` in the sentence | No invented values in the text; the effect of informative missingness is measured separately |
+| Class imbalance | No oversampling; handled by the decision threshold | Oversampling before CV caused leakage (Diabetes130 CV AUC 0.76 vs 0.55 real) and distorts probabilities |
+| Text | One sentence per record, codes translated to words, units added | Lets the encoder use its language knowledge |
+| Embeddings | 7 frozen encoders, max 512 tokens | No truncation; same input for every encoder |
+| Classifier | `StandardScaler` + L2 `LogisticRegression` | Linear probe; standardization makes Ollama (unit-norm) and Hugging Face (norm 11–13) vectors comparable |
+| C | Chosen per encoder in {0.001 … 100} by inner 5-fold CV (ROC-AUC) | One fixed C favoured one family |
+| Threshold | F1-optimal on out-of-fold scores of an inner 5-fold CV | Never chosen on the labels it is evaluated on |
+| Validation | Outer stratified 5-fold CV; then the same protocol on the whole training split, measured once on the test split | Stable estimates plus an independent check |
+| Uncertainty | 10,000 paired bootstrap resamples of the out-of-fold predictions, percentile 95% CIs | Same resampled patients for every encoder |
+| Tests | Wilcoxon and paired t-test on the bootstrap values; DeLong on out-of-fold AUCs; Benjamini-Hochberg | See [docs/STATISTICAL_TESTS.md](docs/STATISTICAL_TESTS.md) |
+
+## Supplementary analyses (phase 8)
+
+Run by `main.py` after the holdout phase, with the same splits, folds and seed:
+
+- **Tabular baselines** (`tabular_baselines.csv`): logistic regression and gradient boosting on the original columns, same CV and threshold protocol as the encoders. They tell whether the text representation keeps, adds or loses information.
+- **Per-centre analysis** (Heart Disease only, `centre_analysis.csv`, `non_clinical_signal.csv`): encoder AUC computed inside each source centre, and AUC of the centre prevalence alone and of missingness indicators alone.
+- **Embedding-scale sensitivity** (`embedding_scale.csv`, `embedding_scale_delong.csv`): encoder comparison under four probing protocols (raw vectors with C=1, standardized with C=1, unit-normalized with C=1, standardized with CV-chosen C) and DeLong tests under the last one. With raw vectors and C=1 the general-purpose encoders, whose vectors have unit norm, are over-regularized: the family gap is 3.8 AUC points on Heart Disease and 8.6 on Diabetes130; under the standardized, CV-tuned protocol it is 1.0 and 0.3 points, with 8/21 and 0/21 significant DeLong comparisons.
 
 ## Prerequisites
-- **Python**: 3.14 (developed and tested against this version; earlier 3.x versions are untested). The `env/` folder is a local virtual environment created by [Installation](#installation) step 2 — it is **not** committed to the repository, so every clone must run `pip install -r requirements.txt` itself.
-- **Platform**: developed and verified on Apple Silicon (arm64/macOS); on Intel/Linux the same steps should apply but haven't been verified.
-- **Ollama**: required and must be installed and running locally — the general-purpose embedding models (E5, GTE) are served through it. Install from [ollama.com](https://ollama.com).
-- **Hugging Face access**: the biomedical models (`bioclinicalbert`, `pubmedbert`, `sentence-biobert`) are downloaded via `sentence-transformers`/`huggingface_hub`, which requires a `.env` file in the project root with `HF_READ_TOKEN` and `OFFLINE_MODE` (see [Installation](#installation), step 5).
-- **Hardware**: no GPU required. Expect the full pipeline to take from several minutes to tens of minutes depending on machine specs (embedding generation + 10,000-iteration bootstrap are the slow steps). At least ~8 GB of free RAM is recommended for the HuggingFace models.
+
+- **Python 3.14** (developed and tested on this version), on Apple Silicon macOS; other platforms should work but are not verified.
+- **Ollama**, installed and running, for the four general-purpose encoders: [ollama.com](https://ollama.com).
+- **Hugging Face access** for the three biomedical encoders (downloaded once by sentence-transformers).
+- No GPU needed. About 8 GB of free RAM is enough. A full Diabetes130 run takes from about 1.5 to 3 hours, dominated by embedding 20,000 sentences with seven encoders; the supplementary analyses (phase 8) add about 15 minutes. Heart Disease takes minutes after the embeddings.
 
 ## Installation
-1. Clone the repository and move into it.
-2. Create and activate the virtual environment:
-   ```bash
-   python3 -m venv env
-   source env/bin/activate
-   ```
-3. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
-4. Install and start Ollama, then pull the general-purpose models used by the pipeline (`models_ollama` in `function.py`):
-   ```bash
-   ollama serve &
-   ollama pull jeffh/intfloat-e5-base-v2:q8_0
-   ollama pull twwch/m3e-base
-   ollama pull zyw0605688/gte-large-zh
-   ollama pull jeffh/intfloat-multilingual-e5-large-instruct:q8_0
-   ```
-5. Create a `.env` file in the project root with the Hugging Face token and offline-mode flag used for the biomedical model calls in `embedding.py`:
-   ```
-   HF_READ_TOKEN=your_token_here
-   OFFLINE_MODE=0
-   ```
-   `HF_READ_TOKEN` authenticates with Hugging Face (needed the first time each biomedical model is downloaded, or if a model is gated); `OFFLINE_MODE=1` forces `sentence-transformers` to use only the local cache (set it to `1` after the models have already been downloaded once, to skip the network check).
-6. Run the pipeline:
-   ```bash
-   python main.py
-   ```
 
-Alternatively, `run_pipeline.sh` (`.bat` / `.ps1` on Windows) automates steps 2–6 end-to-end (creates/activates `env`, installs dependencies, starts Ollama, pulls the required models, and runs `main.py`).
+```bash
+python3 -m venv env
+source env/bin/activate
+pip install -r requirements.txt
 
-## Pipeline Phases
+ollama serve &
+ollama pull jeffh/intfloat-e5-base-v2:q8_0
+ollama pull twwch/m3e-base
+ollama pull zyw0605688/gte-large-zh
+ollama pull jeffh/intfloat-multilingual-e5-large-instruct:q8_0
+```
 
-| Phase | File | What it does |
-|---|---|---|
-| Preprocessing | [preprocessing.py](preprocessing.py) | Stratified 80/20 split; missing values kept as missing (no imputation), no oversampling; scale + one-hot encode an imputed copy for visualization only |
-| Embedding | [embedding.py](embedding.py) | Convert records to text (`record_to_text`), generate vectors via Ollama / `sentence-transformers`, save to `.npy` |
-| Classification | [classification.py](classification.py) | `LogisticRegression`, `StratifiedKFold` (5 folds), F1-optimal threshold from an inner CV, bootstrap uncertainty |
-| Evaluation | [evaluation.py](evaluation.py) | UMAP, ROC, confusion matrices, bootstrap boxplots, mean±CI, family comparison plots |
-| Error Analysis | [error_analysis.py](error_analysis.py) | Traces misclassifications back to clinical records; error rates, hardest cases, feature deviation |
-| Statistical Tests | [statisticaltest.py](statisticaltest.py) | Wilcoxon, paired t-test, DeLong test across all model pairs |
-| Report | [generatereport.py](generatereport.py) | Assembles all of the above into a single Markdown report |
+Create a `.env` file in the project root:
 
-### Preprocessing
-- Stratified 80/20 train/test split (`random_state=42`); the test split is used only by the holdout phase
-- **No imputation** of the records that get embedded: a missing value is written as `not recorded` in the text
-- **No oversampling**: an earlier version applied SMOTENC before cross-validation; on Diabetes130 87% of the positives were synthetic and the CV AUC (~0.76) measured how recognisable synthetic records were, while the AUC on real records was ~0.50–0.55. Class imbalance is now handled by the decision threshold (see [docs/CHANGES.md](docs/CHANGES.md))
-- `StandardScaler` + one-hot encoding of an imputed *copy* of the training split, used only for the UMAP projection and correlation heatmap
-- Persists `datas/<dataset>/preprocessing/X_train_raw.csv` (missing values as empty cells) for error analysis and inference
+```
+HF_READ_TOKEN=your_token_here
+OFFLINE_MODE=0
+```
 
-### Embedding
-- General-purpose models via `ollama` client, biomedical models via `sentence-transformers`
-- Model list defined in `function.py` (`models_ollama`, `models_medical`, combined into `models_all`)
-- Hugging Face encoders run with `max_seq_length=512` (`HF_MAX_SEQ_LENGTH`): the default can be as low as 100 tokens, which silently truncated the last fields of every record
+`HF_READ_TOKEN` is optional (needed only for gated models or rate limits); set `OFFLINE_MODE=1` after the first download to use only the local model cache.
 
-### Classification
-- Base classifier: `LogisticRegression` (`max_iter=2000`)
-- 5-fold `StratifiedKFold`; in each fold the threshold maximizing F1 is chosen on out-of-fold scores of an inner 5-fold CV over the training partition, then the classifier is fit on the whole training partition
-- Reported metrics: Accuracy, Macro-F1, ROC-AUC, PR-AUC, Brier score, mean threshold
-- Holdout phase: same protocol on the whole training pool, measured once on the test split (adds precision, recall, prevalence)
-- Per-fold validation indices saved (`{model}_val_idx.npy`) for error tracing
-
-### Evaluation and Visualization
-All plots saved as 300 DPI PNG and vector PDF, white background, colorblind-safe family-consistent palette:
-
-| Plot | Location |
-|---|---|
-| UMAP 2D projection | `datas/graphics/UMAP_*` |
-| Unified ROC comparison | `datas/graphics/ROC_comparison` |
-| Confusion matrices per model | `datas/graphics/CM_*` |
-| Bootstrap metric boxplots | `datas/results/BOXPLOT_metrics` |
-| Mean ± 95% CI per model/metric | `datas/results/MeanCI_metrics` |
-| Model family comparison | `datas/results/FamilyComparison_metrics` |
-
-### Error Analysis
-Traces every misclassification back to the real clinical record using the saved `val_idx`:
-- **Per-model error rates**: `datas/results/error_summary.csv`, plotted in `ErrorAnalysis_rates`
-- **Misclassified records**: `datas/results/{model}_false_positives.csv` / `_false_negatives.csv`
-- **Hardest cases**: `datas/results/hardest_cases.csv`
-- **Feature deviation**: `datas/results/feature_deviation.csv`, plotted in `ErrorAnalysis_feature_deviation`
-
-All of the above feed into the generated report, grounding the discussion of failure modes in the actual run's data.
-
-### Statistical Tests
-Wilcoxon signed-rank, paired t-test, and DeLong test are run across all pairwise model comparisons on bootstrap distributions (10,000 resamples). Results saved to `datas/results/{wilcoxon,ttest,delong}_comparison.csv`. Full methodology, hypotheses, and interpretation guidance in **[docs/STATISTICAL_TESTS.md](docs/STATISTICAL_TESTS.md)**.
-
-## `datas/` Folder Structure
-Each dataset gets its own tree under `datas/<dataset>/` (`heart_disease` or `diabetes130`), created by `get_output_dirs()` in `function.py`, so switching `--dataset` never overwrites the other dataset's run:
-
-| Folder | Contents |
-|---|---|
-| `datasets/heart+disease/`, `datasets/diabetes+130-.../` | Raw UCI source files (not touched by the pipeline) |
-| `datas/<dataset>/preprocessing/` | `preprocessed_data.npy` / `preprocessed_labels.npy` (encoded features) and `X_train_raw.csv` (raw features, row-aligned with embeddings) |
-| `datas/<dataset>/embeddings/` | Per-model embedding vectors (`*_embeddings.npy`) and labels (`*_embeddings_labels.npy`) |
-| `datas/<dataset>/results/` | Per-model predictions, bootstrap arrays, comparison tables, error-analysis outputs, and plots |
-| `datas/<dataset>/graphics/` | UMAP, ROC comparison, confusion matrix, and heatmap plots (PNG + PDF) |
-| `datas/<dataset>/reports/` | The generated `report.md` |
-
-## Execution
-The full pipeline (preprocessing → embedding → classification → evaluation → error analysis → statistical tests → report) is orchestrated by `main.py` and takes a single `--dataset` flag to pick which clinical dataset to run:
+## Running
 
 ```bash
 source env/bin/activate
-python main.py --dataset heart_disease   # UCI Heart Disease benchmark
-python main.py --dataset diabetes130     # Diabetes 130-US Hospitals benchmark
+python main.py --dataset heart_disease
+python main.py --dataset diabetes130
+python -m pytest -q
 ```
 
-> ⚠️ **Default dataset**: `--dataset` is optional and **defaults to `heart_disease`** ([main.py](main.py)) — running `python main.py` with no flag will *not* run the Diabetes130 benchmark. Pass `--dataset diabetes130` explicitly to run it.
+`--dataset` defaults to `heart_disease`. Each run deletes and regenerates only its own `datas/<dataset>/` tree. `run_pipeline.sh` (`run_pipeline.bat` or `run_pipeline.ps1` on Windows) also creates the virtual environment, installs the requirements, starts Ollama, pulls the models and forwards its arguments to `main.py`:
 
-Each run first wipes and regenerates only *that dataset's* own `datas/<dataset>/` tree (preprocessing, embeddings, results, graphics — see [`datas/` Folder Structure](#datas-folder-structure) above); the other dataset's previous outputs are left untouched, so the two benchmarks can be run independently and compared side by side.
-
-To automate environment setup and Ollama model downloads as well, use `run_pipeline.sh` (`.bat` / `.ps1` on Windows), which forwards any arguments to `main.py`:
 ```bash
-./run_pipeline.sh                        # defaults to heart_disease
 ./run_pipeline.sh --dataset diabetes130
 ```
-Note: embedding generation for the general-purpose models uses `ollama.Client` in `embedding.py` — ensure the Ollama service is running and the required models have been pulled (see [Installation](#installation)).
 
-## Inference (optional, not part of the pipeline)
-`main.py` trains and validates; it never predicts on a case it hasn't already seen and labeled. `inference.py` adds that separately, as a standalone module deliberately **not** wired into `main.py`'s eight phases — it consumes a completed run's output on demand, it isn't a ninth pipeline phase:
+Every random step uses seed 42: rerunning gives identical results (verified on both datasets in November 2026).
+
+## Outputs (`datas/<dataset>/`)
+
+| Folder | Contents |
+|---|---|
+| `preprocessing/` | `X_train_raw.csv`, `X_test_raw.csv` (raw records, missing values as empty cells), `y_test.npy` |
+| `embeddings/` | `*_embeddings.npy` (training) and `*_embeddings_test.npy` (test split), with labels |
+| `results/` | Out-of-fold predictions, bootstrap arrays, `encoder_comparison_summary.csv` (means and 95% CIs), `model_performance.csv` (per-fold means, PR-AUC, Brier, threshold, C), `holdout_evaluation.csv`, `{wilcoxon,ttest,delong}_comparison.csv`, error-analysis CSVs, supplementary-analysis CSVs (`tabular_baselines`, `centre_analysis`, `non_clinical_signal`, `embedding_scale`, `embedding_scale_delong`), plots |
+| `graphics/` | UMAP, correlation heatmap, ROC comparison, confusion matrices (PNG and PDF) |
+| `reports/` | `report.md` |
+
+## Study manual
+
+`manuale_v3/` contains a study manual in Italian: background from scratch (machine learning, statistics, language models), method, results, limitations, likely discussion questions and bibliography. Build it with:
 
 ```bash
-python inference.py --dataset heart_disease --record '{"age": 63, "sex": 1, "cp": 1, "trestbps": 145, "chol": 233, "fbs": 1, "restecg": 0, "thalach": 150, "exang": 0, "oldpeak": 2.3, "slope": 3, "ca": 0, "thal": 6}'
+pip install markdown latex2mathml pandas   # not part of requirements.txt
+python manuale_v3/genera_figure.py
+python manuale_v3/build_epub.py            # writes the .epub and a single-file .html
 ```
-
-or as a library:
-```python
-from inference import predict_record
-predict_record({"age": 63, "sex": 1, ...}, dataset="heart_disease")
-```
-
-Requires a completed `python main.py --dataset ...` run for that dataset first (it fits on the already-saved training embeddings, it does not regenerate them). See **[docs/INFERENCE.md](docs/INFERENCE.md)** for the full design rationale, including how missing fields are handled and how this differs from the (unmerged, `chatbot` branch) chatbot's approach to the same problem.
 
 ## Troubleshooting
-- **ARM/x86 mismatch (Apple Silicon)**: make sure `python3` and the virtual environment are built natively for `arm64` (`python3 -c "import platform; print(platform.machine())"` should print `arm64`). A Rosetta-translated Python install can cause slow or failing installs of `torch`/`numba`.
-- **`ollama pull` / model not found errors**: the general-purpose models must be pulled before running the pipeline (see [Installation](#installation), step 4). Verify with `ollama list`.
-- **Hugging Face authentication / gated model errors**: set `HF_READ_TOKEN` in `.env` (see [Installation](#installation), step 5); for fully offline runs after the first download, set `OFFLINE_MODE=1`.
-- **`FileNotFoundError` on `.npy` files in `datas/embeddings` or `datas/results`**: an earlier phase hasn't completed successfully yet — rerun `python main.py`, or check the console output of the specific phase.
-- **Virtual environment issues**: if `source env/bin/activate` fails, delete the `env/` folder and recreate it (`python3 -m venv env`), then reinstall with `pip install -r requirements.txt`.
-- **`ModuleNotFoundError` for a package listed in `requirements.txt`**: the environment was activated but `pip install -r requirements.txt` was never run (or was interrupted) inside it — re-run it; this is safe to repeat.
 
-## Requirements
-See [requirements.txt](requirements.txt) for the full dependency list.
+- **Apple Silicon**: check that Python runs natively (`python3 -c "import platform; print(platform.machine())"` prints `arm64`); a Rosetta Python makes `torch`/`numba` installs slow or failing.
+- **Ollama model not found**: pull the four models above and check with `ollama list`.
+- **Hugging Face errors**: set `HF_READ_TOKEN` in `.env`; use `OFFLINE_MODE=1` only after the models are cached.
+- **`FileNotFoundError` in `datas/...`**: an earlier phase did not complete; rerun `main.py` for that dataset.
+- **`ModuleNotFoundError`**: run `pip install -r requirements.txt` inside the activated environment.
 
-## Further Reading
-- **[docs/DATASET.md](docs/DATASET.md)** — full dataset origin, composition, ethics, and limitations
-- **[docs/STATISTICAL_TESTS.md](docs/STATISTICAL_TESTS.md)** — statistical testing methodology, hypotheses, and interpretation
-- **[docs/INFERENCE.md](docs/INFERENCE.md)** — single-record inference (`inference.py`): design, usage, and how it differs from the chatbot's approach
-- **[docs/CHANGES.md](docs/CHANGES.md)** — pipeline correctness and quality fixes, with rationale for each
+## Further documentation
+
+- [docs/DATASET.md](docs/DATASET.md): datasets, cleaning, variables, missing values, limitations
+- [docs/STATISTICAL_TESTS.md](docs/STATISTICAL_TESTS.md): bootstrap, Wilcoxon, paired t-test, DeLong, Benjamini-Hochberg, and how to read them
+- [docs/CHANGES.md](docs/CHANGES.md): methodological corrections and their measured effect

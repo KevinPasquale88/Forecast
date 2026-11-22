@@ -53,7 +53,6 @@ setuptools==81.0.0
 shellingham==1.5.4
 six==1.17.0
 sklearn-compat==0.1.5
-smote==0.1
 sympy==1.14.0
 tabulate==0.10.0
 threadpoolctl==3.6.0
@@ -64,5 +63,4 @@ transformers==5.7.0
 typer==0.25.1
 typing-inspection==0.4.2
 typing_extensions==4.15.0
-ucimlrepo==0.0.7
 umap-learn==0.5.12

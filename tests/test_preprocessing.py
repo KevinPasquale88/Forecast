@@ -1,8 +1,8 @@
 """Tests for the imputation helpers in preprocessing.py.
 
-Imputation is now used only for the UMAP/heatmap visualization copy of the training split (the
-records that get embedded keep their missing values). These tests still guard against fitting an
-imputation statistic on a frame other than the one it is meant to come from. See docs/CHANGES.md.
+Imputation is used only for the UMAP/heatmap visualization copy of the training split (the
+records that get embedded keep their missing values). These tests guard against fitting an
+imputation statistic on a frame other than the one it is meant to come from.
 """
 import numpy as np
 import pandas as pd
@@ -10,7 +10,6 @@ import pandas as pd
 from preprocessing import (
     fit_imputation_values,
     apply_imputation,
-    impute_raw,
 )
 
 
@@ -40,12 +39,3 @@ def test_apply_imputation_does_not_mutate_its_input():
     apply_imputation(X, fill_values)
     assert X["age"].isna().sum() == 1  # the original frame is untouched
 
-
-def test_impute_raw_matches_fit_then_apply_on_a_single_frame():
-    X = pd.DataFrame({
-        "age": [50.0, 60.0, np.nan],
-        "sex": ["M", "M", np.nan],
-    })
-    combined = impute_raw(X, num_cols=["age"], cat_cols=["sex"])
-    separate = apply_imputation(X, fit_imputation_values(X, num_cols=["age"], cat_cols=["sex"]))
-    pd.testing.assert_frame_equal(combined, separate)

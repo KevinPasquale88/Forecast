@@ -140,55 +140,53 @@ def generate_embeddings_batch(model_name, texts, batch_size=16, max_retries=5,
     return all_embeddings
 
 def generate_embeddings_hf(texts, model_name):
-    print(f"[HF] Inizializzazione modello: {model_name}")
+    print(f"[HF] Loading model: {model_name}")
     
-    # Carica le variabili d'ambiente dal file .env
+    # environment variables from the .env file in the project root
     load_dotenv()
 
-    # 1. Autenticazione sicura con Hugging Face
+    # 1. optional Hugging Face authentication (needed only for gated models or rate limits)
     hf_token = os.getenv("HF_READ_TOKEN")
     if hf_token:
-        print("[HF] Token rilevato. Autenticazione in corso...")
+        print("[HF] Token found, logging in.")
         login(token=hf_token)
     else:
-        print("[HF] Nessun token rilevato. Procedo senza autenticazione.")
+        print("[HF] No token found, continuing without authentication.")
 
-    # 2. Gestione della modalità Offline
-    # Leggiamo dal .env se vogliamo forzare l'offline (es. OFFLINE_MODE=1)
+    # 2. offline mode (OFFLINE_MODE=1 in .env): use only the local model cache
     is_offline = os.getenv("OFFLINE_MODE", "0") == "1"
     
     if is_offline:
-        print("[HF] Modalità offline attivata. Verrà usata solo la cache locale.")
+        print("[HF] Offline mode: using the local cache only.")
         os.environ["TRANSFORMERS_OFFLINE"] = "1"
         os.environ["HF_DATASETS_OFFLINE"] = "1"
         os.environ["HF_HUB_OFFLINE"] = "1"
     else:
-        # Assicuriamoci che l'offline sia disabilitato per permettere il download
+        # online: allow downloading the model on first use
         os.environ["TRANSFORMERS_OFFLINE"] = "0"
         os.environ["HF_DATASETS_OFFLINE"] = "0"
         os.environ["HF_HUB_OFFLINE"] = "0"
 
-    # 3. Caricamento del modello
+    # 3. load the model
     try:
-        # SentenceTransformer applicherà automaticamente il "mean pooling" ai token di Bio_ClinicalBERT
+        # Bio_ClinicalBERT has no sentence-transformers config: the library adds mean pooling
         model = SentenceTransformer(model_name, local_files_only=is_offline)
         # Default is as low as 100 tokens: the clinical sentences are longer, so the last fields
         # would be silently truncated (see HF_MAX_SEQ_LENGTH in function.py).
         model.max_seq_length = HF_MAX_SEQ_LENGTH
     except Exception as e:
-        print(f"[HF] Errore critico durante il caricamento del modello. model_name: {model_name}, dettagli: {e}")
+        print(f"[HF] Could not load model {model_name}: {e}")
         raise e
 
-    # 4. Generazione degli embeddings
-    print(f"[HF] Generazione embeddings in corso...")
+    # 4. encode every sentence
+    print("[HF] Generating embeddings...")
     embeddings = model.encode(texts, show_progress_bar=True, convert_to_numpy=True)
     
     return embeddings
 
 def _split_filename(filename, split):
-    """Insert a "_<split>" suffix before the extension, unless split is "train" (kept as the
-    original, unsuffixed name so existing training-embedding filenames — and anything that
-    already depends on them — are unaffected)."""
+    """Insert a "_<split>" suffix before the extension, unless split is "train" (training
+    embeddings keep the unsuffixed name used by classification.py)."""
     if split == "train":
         return filename
     stem, ext = os.path.splitext(filename)

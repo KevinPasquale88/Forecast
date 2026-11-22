@@ -3,21 +3,13 @@ statisticaltest.py."""
 import numpy as np
 import pytest
 
-from function import get_output_dirs, optimal_f1_threshold, out_of_fold_threshold, results, models_all
+from function import get_output_dirs, optimal_f1_threshold, out_of_fold_threshold
 from statisticaltest import _benjamini_hochberg
 
 
 def test_get_output_dirs_rejects_unknown_dataset():
     with pytest.raises(ValueError):
         get_output_dirs("not_a_real_dataset")
-
-
-def test_results_dict_has_exactly_one_entry_per_configured_model():
-    """Regression test for the bug this replaced: `results` used to be hand-initialized with
-    only 4 of the (currently) 7 configured models, so it could silently drift out of sync with
-    models_all. It must always match exactly, in both directions."""
-    expected = {m["model_name"] for m in models_all}
-    assert set(results.keys()) == expected
 
 
 def test_optimal_f1_threshold_on_perfectly_separated_scores():

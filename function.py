@@ -67,13 +67,6 @@ FAMILY_COLORS = {
 FIGSIZE_STD = (7, 5)
 FIGSIZE_WIDE = (9, 5.5)
 
-# Built from models_all itself, not listed by hand: previously this only pre-populated 4 of
-# the 7 configured models, leaving the other 3 to be created ad hoc by classification.py's own
-# assignment (harmless in practice, since Python dicts create missing keys silently, but the
-# stale initial content no longer matched the real model list). Now it always has exactly one
-# entry per model actually configured in models_all, so the two can never drift apart again.
-results = {m["model_name"]: {"acc": [], "f1": [], "auc": [], "tau": []} for m in models_all}
-
 # Hugging Face encoders default to a short max_seq_length (sentence-biobert: 100 tokens). The
 # clinical sentences are longer than that, so without raising it the last fields of every record
 # (ca/thal, or the diabetes medication fields) are silently cut off before reaching the model.
@@ -210,8 +203,8 @@ def optimal_f1_threshold(y_true, y_score):
 
 # Regularization grid for the linear probe. Ollama embeddings are unit-norm while the Hugging
 # Face ones have norm ~11-13: with one fixed C on raw vectors the L2 penalty is far stronger for
-# the former, which biased the encoder comparison (manuale_v2, capitolo 32.4). Every encoder is
-# therefore standardized and gets its own C, chosen by an inner cross-validation.
+# the former, which biased the encoder comparison (see supplementary_analysis.embedding_scale). Every
+# encoder is therefore standardized and gets its own C, chosen by an inner cross-validation.
 C_GRID = np.logspace(-3, 2, 6)
 
 
@@ -265,10 +258,7 @@ def delete_files_embeddings(folder):
             print(f"Successfully deleted file: {file_name}")
 
 def delete_files_preprocessing(folder):
-    # "preprocessed" alone used to miss X_train_raw.csv (never matched the pattern, even before
-    # this fix) and the newer X_test_raw.csv / y_test.npy: a failed run could leave any of these
-    # behind for the next run to silently pick up. All three patterns are matched now.
-    pattern_list = ["preprocessed", "_raw.csv", "y_test.npy"]
+    pattern_list = ["_raw.csv", "y_test.npy"]
     for file_name in os.listdir(folder):
         full_path = os.path.join(folder, file_name)
         if os.path.isfile(full_path) and any(s in file_name for s in pattern_list):
@@ -276,10 +266,9 @@ def delete_files_preprocessing(folder):
             print(f"Successfully deleted file: {file_name}")
 
 def delete_files_results(folder):
-    # wilcoxon/ttest/delong comparison CSVs were missing from this list before this fix: a
-    # previous run's statistical test output could survive a rerun where that phase was skipped
-    # or failed, silently mixing results from two different executions.
-    pattern_list = ["model_performance","_y_true", "_y_score", "_y_pred", "_val_idx", "BOXPLOT_metrics", "metric_comparison","encoder_comparison_summary", "MeanCI_metrics", "FamilyComparison_metrics", "error_summary", "hardest_cases", "false_positives", "false_negatives", "feature_deviation", "ErrorAnalysis", "holdout_evaluation", "wilcoxon_comparison", "ttest_comparison", "delong_comparison"]
+    # Every file the classification, evaluation, error-analysis, statistical-test, holdout and
+    # supplementary-analysis phases write, so a failed rerun can never mix outputs of two different executions.
+    pattern_list = ["model_performance", "_boot_", "_y_true", "_y_score", "_y_pred", "_val_idx", "BOXPLOT_metrics", "encoder_comparison_summary", "MeanCI_metrics", "FamilyComparison_metrics", "error_summary", "hardest_cases", "false_positives", "false_negatives", "feature_deviation", "ErrorAnalysis", "holdout_evaluation", "wilcoxon_comparison", "ttest_comparison", "delong_comparison", "tabular_baselines", "centre_analysis", "non_clinical_signal", "embedding_scale"]
     for file_name in os.listdir(folder):
         full_path = os.path.join(folder, file_name)
         if os.path.isfile(full_path) and any(s in file_name for s in pattern_list):
@@ -287,7 +276,7 @@ def delete_files_results(folder):
             print(f"Successfully deleted file: {file_name}")
 
 def delete_files_graphics(folder):
-    pattern_list = ["ROC", "CM", "bootstrap_metrics", "UMAP", "metric_comparison", "heatmap"]
+    pattern_list = ["ROC", "CM_", "UMAP", "heatmap"]
     for file_name in os.listdir(folder):
         full_path = os.path.join(folder, file_name)
         if os.path.isfile(full_path) and any(s in file_name for s in pattern_list):
@@ -295,10 +284,9 @@ def delete_files_graphics(folder):
             print(f"Successfully deleted file: {file_name}")
 
 
-# print all datas in one markdown report
-def plot_data_heatmap(X, num_cols=None, graphics_dir="datas/graphics"):
-    if num_cols is None:
-        num_cols = ["age", "trestbps", "chol", "thalach", "oldpeak", "ca"]
+# plotting functions, called by preprocessing.py, evaluation.py and
+# error_analysis.py; every figure is saved as 300-DPI PNG and vector PDF
+def plot_data_heatmap(X, num_cols, graphics_dir):
     fig, ax = plt.subplots(figsize=FIGSIZE_STD)
     sns.heatmap(X[num_cols].corr(), annot=True, cmap="coolwarm", center=0, ax=ax,
                 cbar_kws={"shrink": 0.75}, linewidths=0.4, linecolor="white")
@@ -306,7 +294,7 @@ def plot_data_heatmap(X, num_cols=None, graphics_dir="datas/graphics"):
     save_figure(fig, os.path.join(graphics_dir, "heatmap_correlation"))
     plt.close(fig)
 
-def plot_umap(X, y, title, graphics_dir="datas/graphics"):
+def plot_umap(X, y, title, graphics_dir):
     reducer = UMAP(n_components=2, random_state=42)
     X_umap = reducer.fit_transform(X)
     fig, ax = plt.subplots(figsize=FIGSIZE_STD)
@@ -319,7 +307,7 @@ def plot_umap(X, y, title, graphics_dir="datas/graphics"):
     save_figure(fig, os.path.join(graphics_dir, f"UMAP_{title}"))
     plt.close(fig)
 
-def plot_boxplots(results_dict, results_dir="datas/results"):
+def plot_boxplots(results_dict, results_dir):
     rows = []
     for model_name, metrics in results_dict.items():
         for v in metrics["acc"]:
@@ -340,7 +328,7 @@ def plot_boxplots(results_dict, results_dir="datas/results"):
     save_figure(fig, os.path.join(results_dir, "BOXPLOT_metrics"))
     plt.close(fig)
 
-def plot_roc_comparison(roc_data, filename="ROC_comparison", graphics_dir="datas/graphics"):
+def plot_roc_comparison(roc_data, graphics_dir, filename="ROC_comparison"):
     model_order = [name for name, _, _ in roc_data]
     palette = get_model_palette(model_order)
 
@@ -362,7 +350,7 @@ def plot_roc_comparison(roc_data, filename="ROC_comparison", graphics_dir="datas
     save_figure(fig, os.path.join(graphics_dir, filename))
     plt.close(fig)
 
-def plot_confusion(y_true, y_pred, name, graphics_dir="datas/graphics"):
+def plot_confusion(y_true, y_pred, name, graphics_dir):
     cm = confusion_matrix(y_true, y_pred)
     fig, ax = plt.subplots(figsize=(5, 4))
     sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", ax=ax,
@@ -373,19 +361,7 @@ def plot_confusion(y_true, y_pred, name, graphics_dir="datas/graphics"):
     save_figure(fig, os.path.join(graphics_dir, f"CM_{name}"))
     plt.close(fig)
 
-def plot_metric_comparison(df_summary, results_dir="datas/results"):
-    df_melted = df_summary.melt(id_vars="model", value_vars=["acc", "f1", "auc", "tau"], var_name="metric", value_name="value")
-    model_order = sorted(df_summary["model"], key=lambda m: (MODEL_FAMILY.get(m, ""), m))
-    palette = get_model_palette(model_order)
-
-    fig, ax = plt.subplots(figsize=FIGSIZE_WIDE)
-    sns.barplot(data=df_melted, x="metric", y="value", hue="model", hue_order=model_order, palette=palette, ax=ax)
-    ax.set_title("Metric Comparison (Mean) per Model")
-    ax.legend(bbox_to_anchor=(1.02, 1), loc="upper left", frameon=False, borderaxespad=0)
-    save_figure(fig, os.path.join(results_dir, "metric_comparison"))
-    plt.close(fig)
-
-def plot_mean_ci(df_summary, results_dir="datas/results"):
+def plot_mean_ci(df_summary, results_dir):
     metrics = [("acc", "Accuracy"), ("f1", "F1"), ("auc", "AUC")]
     df_sorted = df_summary.copy()
     df_sorted["family"] = df_sorted["model"].map(MODEL_FAMILY)
@@ -421,7 +397,7 @@ def plot_mean_ci(df_summary, results_dir="datas/results"):
     save_figure(fig, os.path.join(results_dir, "MeanCI_metrics"))
     plt.close(fig)
 
-def plot_family_comparison(bootstrap_results, results_dir="datas/results"):
+def plot_family_comparison(bootstrap_results, results_dir):
     rows = []
     for model_name, metrics in bootstrap_results.items():
         family = MODEL_FAMILY.get(model_name, "general-purpose")
@@ -433,10 +409,7 @@ def plot_family_comparison(bootstrap_results, results_dir="datas/results"):
             rows.append([family, "AUC", v])
     df = pd.DataFrame(rows, columns=["Family", "Metric", "Value"])
     present_families = list(df["Family"].unique())
-    # Preserve the canonical ordering for families already known to FAMILY_COLORS, but never
-    # silently drop a family just because it isn't listed there yet: appending any unrecognized
-    # family (with a grey fallback colour, matching get_model_palette's own fallback) keeps a
-    # newly added model family visible in this plot instead of vanishing from it without warning.
+    # canonical order for known families; an unknown family is appended with a grey fallback
     family_order = [f for f in FAMILY_COLORS if f in present_families]
     family_order += [f for f in present_families if f not in family_order]
     palette = {f: FAMILY_COLORS.get(f, "#888888") for f in family_order}
@@ -449,7 +422,7 @@ def plot_family_comparison(bootstrap_results, results_dir="datas/results"):
     save_figure(fig, os.path.join(results_dir, "FamilyComparison_metrics"))
     plt.close(fig)
 
-def plot_error_rates(df_error_summary, results_dir="datas/results"):
+def plot_error_rates(df_error_summary, results_dir):
     df_melted = df_error_summary.melt(id_vars="model", value_vars=["fp_rate", "fn_rate"],
                                        var_name="error_type", value_name="rate")
     df_melted["error_type"] = df_melted["error_type"].map({"fp_rate": "False Positive Rate", "fn_rate": "False Negative Rate"})
@@ -466,7 +439,7 @@ def plot_error_rates(df_error_summary, results_dir="datas/results"):
     save_figure(fig, os.path.join(results_dir, "ErrorAnalysis_rates"))
     plt.close(fig)
 
-def plot_feature_deviation(df_deviation, results_dir="datas/results"):
+def plot_feature_deviation(df_deviation, results_dir):
     df_sorted = df_deviation.reindex(df_deviation["deviation"].abs().sort_values().index)
     colors = ["#e34948" if v > 0 else "#2a78d6" for v in df_sorted["deviation"]]
 

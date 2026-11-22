@@ -123,5 +123,5 @@ rem ======================================================
 echo.
 echo =====================================================
 echo      🎉 PIPELINE COMPLETED SUCCESSFULLY!
-echo  Results available in /results/
-echo  Report generated: report.md + report.pdf
+echo  Results available in datas\^<dataset^>\
+echo  Report generated: datas\^<dataset^>\reports\report.md

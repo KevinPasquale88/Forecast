@@ -1,8 +1,8 @@
 """Tests for the pure tabular-to-text conversion functions in embedding.py.
 
-Pure functions — no disk, no network, no Ollama/Hugging Face — are the cheapest, highest-value
-place to start testing this project (see the manual, capitolo 48.2). Missing values are never
-imputed (see preprocessing.py), so every missing field must read as "not recorded".
+Pure functions (no disk, no network, no Ollama/Hugging Face) are the cheapest, highest-value
+place to test this project. Missing values are never imputed (see preprocessing.py), so every
+missing field must read as "not recorded".
 """
 import pandas as pd
 import pytest

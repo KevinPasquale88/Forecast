@@ -1,4 +1,12 @@
 
+"""Pairwise statistical comparison of the seven encoders (phase 6 of main.py).
+
+- Wilcoxon signed-rank and paired t-test on the 10,000 paired bootstrap values of accuracy,
+  macro-F1 and ROC-AUC saved by evaluation.py (same resampled patients for every model, seed 42).
+- DeLong test on the out-of-fold ROC-AUC of each pair (same patients, same labels).
+- Benjamini-Hochberg adjusted p-values, computed over all the rows of each output file (63 for
+  Wilcoxon and t-test: 21 pairs x 3 metrics; 21 for DeLong), reported alongside the raw ones.
+"""
 import os
 from MLstatkit import Delong_test
 import numpy as np
@@ -10,10 +18,9 @@ from function import get_output_dirs, models_all
 
 def _benjamini_hochberg(p_values):
     """Benjamini-Hochberg adjusted p-values (controls the false discovery rate), same order as
-    the input. With 21 pairwise comparisons per metric (C(7,2) for 7 models) and no correction,
-    some raw p-values fall below 0.05 by chance alone even if nothing real is going on — this
-    column flags which comparisons remain significant once that is accounted for, without
-    removing the original, uncorrected p-values (see docs/CHANGES.md)."""
+    the input. With 21 pairwise comparisons per metric (C(7,2) for 7 models), some raw p-values
+    fall below 0.05 by chance alone; the adjusted values say which comparisons remain
+    significant once that is accounted for."""
     p = np.asarray(p_values, dtype=float)
     n = len(p)
     if n == 0:
@@ -44,7 +51,7 @@ def test_statistical_tests(dataset="heart_disease"):
     models = [m["model_name"] for m in models_all]
 
     for metric in metrics:
-        # Load  10.000 bootstrap scores for each model
+        # the 10,000 bootstrap values of this metric for each model
         boot_scores = {}
         for model_name in models:
             boot_scores[model_name] = np.load(
@@ -85,9 +92,8 @@ def test_statistical_tests(dataset="heart_disease"):
                     "significant": "1" if p_t < 0.05 else "0"
                 })
 
-    # Salva CSV (p_value_bh / significant_bh: Benjamini-Hochberg correction across all pairwise
-    # comparisons of this test type, in addition to — not instead of — the raw p_value/significant
-    # columns already here)
+    # p_value_bh / significant_bh: Benjamini-Hochberg correction across all pairwise comparisons
+    # of this test type, in addition to the raw p_value / significant columns
     _add_bh_columns(pd.DataFrame(wilcoxon_results)).to_csv(
         os.path.join(dirs["results"], "wilcoxon_comparison.csv"), index=False
     )
@@ -95,14 +101,14 @@ def test_statistical_tests(dataset="heart_disease"):
         os.path.join(dirs["results"], "ttest_comparison.csv"), index=False
     )
     test_delong(dirs)
-    print("End statistical tests completed and saved.")
+    print("Statistical tests completed and saved.")
 
 def test_delong(dirs):
-    # Placeholder for DeLong test implementation
+    """DeLong test on every pair of models, from the out-of-fold predictions of classification.py."""
     delong_results = []
     models = [m["model_name"] for m in models_all]
 
-    # Carica y_true e y_score per ogni modello
+    # out-of-fold labels and scores of every model
     scores = {}
     for model_name in models:
         scores[model_name] = {
@@ -119,7 +125,7 @@ def test_delong(dirs):
             y_true_b = scores[b]["y_true"]
 
             if not np.array_equal(y_true_a, y_true_b):
-                print(f"[WARNING] y_true diversi per {a} vs {b} — skip")
+                print(f"[WARNING] different y_true for {a} vs {b}: skipped")
                 continue
 
             z, p, auc_a, auc_b = Delong_test(
@@ -146,9 +152,9 @@ def test_delong(dirs):
                 f"{a} vs {b}: "
                 f"AUC={auc_a:.4f} vs {auc_b:.4f}, "
                 f"z={z:.3f}, p={p:.4f} "
-                f"{'✅' if p < 0.05 else '❌'}"
+                f"{'significant' if p < 0.05 else 'not significant'}"
             )
 
     df_delong = _add_bh_columns(pd.DataFrame(delong_results))
     df_delong.to_csv(os.path.join(dirs["results"], "delong_comparison.csv"), index=False)
-    print("\n✅ DeLong test completato → delong_comparison.csv")
+    print("\nDeLong test completed -> delong_comparison.csv")

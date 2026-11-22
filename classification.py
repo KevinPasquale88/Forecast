@@ -3,10 +3,11 @@ import numpy as np
 import pandas as pd
 from sklearn.metrics import accuracy_score, average_precision_score, brier_score_loss, f1_score, roc_auc_score
 from sklearn.model_selection import StratifiedKFold
-from function import models_all, plot_metric_comparison, results, get_output_dirs, fit_classifier
+from function import models_all, get_output_dirs, fit_classifier
 
 def training_classifier(dataset="heart_disease"):
     dirs = get_output_dirs(dataset)
+    results = {}  # per-model means over the 5 folds -> model_performance.csv
     for model in models_all:
         print(f"Evaluating model: {model['name']}")
         X = np.load(os.path.join(dirs["embeddings"], model['filename']), allow_pickle=True)
@@ -76,11 +77,3 @@ def training_classifier(dataset="heart_disease"):
     df = pd.DataFrame(results).T   # transpose to have models as rows
     df.to_csv(os.path.join(dirs["results"], "model_performance.csv"))
     print("Saved to model_performance.csv")
-    df_summary = pd.DataFrame({
-        "model": list(results.keys()),
-        "acc": [v["acc"] for v in results.values()],
-        "f1": [v["f1"] for v in results.values()],
-        "auc": [v["auc"] for v in results.values()],
-        "tau": [v["tau"] for v in results.values()]
-    })
-    plot_metric_comparison(df_summary, results_dir=dirs["results"])

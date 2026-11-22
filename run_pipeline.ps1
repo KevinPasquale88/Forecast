@@ -125,5 +125,5 @@ Write-Info "Launching main.py with the provided arguments..."
 if ($LASTEXITCODE -ne 0) { Write-ErrorAndExit "The pipeline terminated with an error." }
  
 Write-Step "PIPELINE COMPLETED"
-Write-Host "Results are available in the project output folders." -ForegroundColor Green
-Write-Host "Report generated: report.md and report.pdf" -ForegroundColor Green
+Write-Host "Results are available in datas\<dataset>\" -ForegroundColor Green
+Write-Host "Report generated: datas\<dataset>\reports\report.md" -ForegroundColor Green

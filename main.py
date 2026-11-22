@@ -8,6 +8,7 @@ from function import delete_files_embeddings, delete_files_graphics, delete_file
 from statisticaltest import test_statistical_tests
 from error_analysis import analyze_errors
 from holdout_evaluation import evaluate_holdout
+from supplementary_analysis import run_supplementary_analyses
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Run the clinical embedding benchmark pipeline.")
@@ -60,7 +61,11 @@ def main():
     #on the test split from phase 1, with the real class distribution.
     evaluate_holdout(dataset=args.dataset)
 
-    #report generation phase 8: create markdown report with results and graphs
+    #supplementary analyses phase 8: tabular baselines on the original columns, embedding-scale
+    #sensitivity and, for Heart Disease, per-centre AUC and non-clinical predictors
+    run_supplementary_analyses(dataset=args.dataset)
+
+    #report generation phase 9: create markdown report with results and graphs
     generate_report(dataset=args.dataset)
 
 if __name__ == "__main__":

@@ -100,7 +100,7 @@ echo "       🚀 STARTING PYTHON PIPELINE STEPS"
 echo "====================================================="
 
 echo ">>> START MAIN"
-# Forward any CLI args, e.g.: ./run_all.sh --dataset diabetes130
+# Forward any CLI args, e.g.: ./run_pipeline.sh --dataset diabetes130
 python3 main.py "$@" || exit 1
 
 # ======================================================
@@ -110,5 +110,5 @@ python3 main.py "$@" || exit 1
 echo ""
 echo "====================================================="
 echo "      🎉 PIPELINE COMPLETED SUCCESSFULLY!"
-echo " Results available in /results/"
-echo " Report generated: report.md + report.pdf"
+echo " Results available in datas/<dataset>/"
+echo " Report generated: datas/<dataset>/reports/report.md"
